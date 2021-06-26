@@ -13,7 +13,7 @@ Have a look at the examples below and the test functions.
 Basic usage:
  
 ```
-use rdkitrust::Molecule;
+use rdkitcffi::Molecule;
  
 let orig_smiles = "OCCC#CO";
 let pkl_mol = Molecule::new(orig_smiles, "");
@@ -23,7 +23,7 @@ let desc = pkl_mol.get_descriptors();
 Working with SD files:
  
 ```
-use rdkitrust::Molecule;
+use rdkitcffi::Molecule;
  
 let mut mol_list : Vec<Molecule> = Molecule::read_sdfile("examples/test.sdf");
 mol_list.iter_mut().for_each(|m| m.remove_all_hs());
@@ -33,11 +33,19 @@ mol_list.iter_mut().for_each(|m| m.remove_all_hs());
 Getting a JSON version of the molecule (via serde_json):
 
 ```
-use rdkitrust::Molecule;
+use rdkitcffi::Molecule;
  
 let orig_smiles = "OCCC#CO";
 let pkl_mol = Molecule::new(orig_smiles, "");
 println!("json molecule:    {:?}", pkl_mol.get_JsonMolecule(""));
  
 ```
+
+## Installation
+
+After installation you may have to update your LD_LIBRARY_PATH in order to find the rdkit shared library, e.g.:  
+
+export LD_LIBRARY_PATH=/home/username/rdkitcffi/lib/rdkitcffi_linux/linux-64/:$LD_LIBRARY_PATH  
+
+
 
