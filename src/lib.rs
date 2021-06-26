@@ -11,7 +11,7 @@
 //! Basic usage:
 //! 
 //! ```
-//! use rdkitrust::Molecule;
+//! use rdkitcffi::Molecule;
 //! 
 //! let orig_smiles = "OCCC#CO";
 //! let pkl_mol = Molecule::new(orig_smiles, "");
@@ -21,7 +21,7 @@
 //! Working with SD files:
 //! 
 //! ```
-//! use rdkitrust::Molecule;
+//! use rdkitcffi::Molecule;
 //! 
 //! let mut mol_list : Vec<Molecule> = Molecule::read_sdfile("examples/test.sdf");
 //! mol_list.iter_mut().for_each(|m| m.remove_all_hs());
@@ -31,7 +31,7 @@
 //! Getting a JSON version of the molecule (via serde_json):
 //! 
 //! ```
-//! use rdkitrust::Molecule;
+//! use rdkitcffi::Molecule;
 //! 
 //! let orig_smiles = "OCCC#CO";
 //! let pkl_mol = Molecule::new(orig_smiles, "");
@@ -42,7 +42,7 @@
 //! Creating a polars dataframe:
 //! 
 //! ```
-//! use rdkitrust::Molecule;
+//! use rdkitcffi::Molecule;
 //! use polars::prelude::*;
 //! use polars::df;
 //! 

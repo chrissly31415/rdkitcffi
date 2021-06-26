@@ -8,7 +8,6 @@ use std::path::PathBuf;
 //compilation for rdkit commands
 //cmake -DRDK_BUILD_MINIMAL_LIB=ON -DRDK_BUILD_CFFI_LIB=ON  -DRDK_BUILD_INCHI_SUPPORT=ON -DRDK_BUILD_PYTHON_WRAPPERS=OFF ..
 //do not use lib and main both, as -l gets only used for library
-//export LD_LIBRARY_PATH=/home/loschen/calc/rust_cheminf/rdkitrust/lib/rdkitcffi_linux/linux-64/:$LD_LIBRARY_PATH
 
 fn main() {
     let project_dir = String::from("./lib/rdkitcffi_linux/linux-64/");
