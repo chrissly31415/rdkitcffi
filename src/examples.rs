@@ -50,24 +50,30 @@ mod tests {
         println!("{}", df);
     }
 
-    // #[test]
-    // fn polars_doc() {
-    //     use polars::df;
-    //     use polars::prelude::*;
+    #[test]
+    fn polars_doc() {
+        use polars::df;
+        use polars::prelude::*;
+        
+        unsafe {         
+            enable_logging();
+        }
 
-    //     let mut mol_list: Vec<Molecule> = Molecule::read_sdfile("examples/test.sdf");
-    //     let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
 
-    //     mol_list.iter_mut().for_each(|m| m.canonical_tautomer(""));
-    //     let b: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
+        let mut mol_list: Vec<Molecule> = Molecule::read_sdfile("examples/test_large.sdf");
+        let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
+        println!("here");
+        mol_list.iter_mut().for_each(|m| m.canonical_tautomer(""));
+        println!("here2");
+        let b: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
 
-    //     let mut df = df!( "smiles" => a, "can_tautomer" => b).unwrap();
+        let mut df = df!( "smiles" => a, "can_tautomer" => b).unwrap();
 
-    //     let vala = df.column("smiles").unwrap();
-    //     let valb = df.column("can_tautomer").unwrap();
-    //     let mask = vala.neq(valb);
-    //     df = df.filter(&mask).unwrap();
-    // }
+        let vala = df.column("smiles").unwrap();
+        let valb = df.column("can_tautomer").unwrap();
+        let mask = vala.neq(valb);
+        df = df.filter(&mask).unwrap();
+    }
 
     #[test]
     fn polars_df2() {
