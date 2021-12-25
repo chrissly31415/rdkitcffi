@@ -8,7 +8,8 @@ Use it at your own risk, its not recommended yet for productive use :-)
 Please note, that only a limited functionality is being exposed via cffi by RDKit.
 Have a look at the examples below and the test functions.
 
-Unfortunately, there are still some dependencies that avoid making the installation straight forward, see also the installation section.
+Unfortunately, there are still some dependencies to boost and rdkit that avoid making the installation straight forward, see also the installation section.  
+Currently they are added directly to the repository for the sake of simplicity, of course this should be done in a better and more dynamic way.  
  
 ## Examples
 
@@ -43,15 +44,6 @@ println!("json molecule:    {:?}", pkl_mol.get_JsonMolecule(""));
 ```
 
 ## Installation
-
-
-Currently you will have to download the boost header libraries before installation, e.g.:  
-
-```
-wget https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.zip
-cd include
-unzip ../boost_1_68_0.zip
-```
 
 In some cases you will have also to install some additional packages for installation:  
 
