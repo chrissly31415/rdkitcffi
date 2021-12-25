@@ -39,7 +39,7 @@ fn main() {
     let bindings = bindgen::Builder::default()
         //.trust_clang_mangling(false)
         .header("include/cffiwrapper.h")
-        .clang_arg("-Iinclude/boost_1_68_0")
+        .clang_arg("-Iinclude/boost")
         .clang_arg("-Iinclude")
         .allowlist_function("version")
         .allowlist_function("enable_logging")
