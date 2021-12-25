@@ -1,5 +1,5 @@
 #!/bin/bash
-# This contains some commands that may be necessary in order to install some dependencies
+# This contains some commands that may be necessary in order to install or update some dependencies
 wget https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.zip
 cd include
 unzip ../boost_1_68_0.zip
