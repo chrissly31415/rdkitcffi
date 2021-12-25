@@ -25,7 +25,7 @@
 
 namespace Rankers {
 //! functor for implementing > on two std::pairs.  The first entries are
-// compared.
+/// compared.
 template <typename T1, typename T2>
 struct pairGreater
     : public std::binary_function<std::pair<T1, T2>, std::pair<T1, T2>, bool> {
@@ -36,7 +36,7 @@ struct pairGreater
 };
 
 //! function for implementing < on two std::pairs.  The first entries are
-// compared.
+/// compared.
 template <typename T1, typename T2>
 struct pairLess
     : public std::binary_function<std::pair<T1, T2>, std::pair<T1, T2>, bool> {
@@ -49,7 +49,7 @@ struct pairLess
 template <typename T>
 class argless : public std::binary_function<T, T, bool> {
  public:
-  argless(const T &c) : std::binary_function<T, T, bool>(), container(c){};
+  argless(const T &c) : std::binary_function<T, T, bool>(), container(c) {}
   bool operator()(unsigned int v1, unsigned int v2) const {
     return container[v1] < container[v2];
   }

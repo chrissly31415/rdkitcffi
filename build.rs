@@ -3,7 +3,9 @@
 //https://medium.com/dwelo-r-d/using-c-libraries-in-rust-13961948c72a
 
 extern crate bindgen;
+extern crate pkg_config;
 use std::path::PathBuf;
+
 //use std::env;
 
 
@@ -30,13 +32,15 @@ fn main() {
     //use this for dynamic lib path cargo test & run
     println!("cargo:rustc-env=LD_LIBRARY_PATH={}",shared_lib_dir);
 
+    //pkg_config::Config::new().probe("boost").unwrap();
+
     //pkg_config::Config::new().probe("rdkitcffi").unwrap();
 
     let bindings = bindgen::Builder::default()
         //.trust_clang_mangling(false)
-        .header("include/wrapper.h")
-        .clang_arg("-I/home/loschen/programs/boost_1_67_0")
-      
+        .header("include/cffiwrapper.h")
+        .clang_arg("-Iinclude/boost_1_68_0")
+        .clang_arg("-Iinclude")
         .allowlist_function("version")
         .allowlist_function("enable_logging")
         .allowlist_function("get_smiles")

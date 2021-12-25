@@ -1,7 +1,6 @@
 // auto-generated export definition header
 #pragma once
-#include "RDExportMacros.h"
-//#include <RDGeneral/RDExportMacros.h>
+#include <RDGeneral/RDExportMacros.h>
 
 // RDKIT_ABBREVIATIONS_EXPORT definitions
 #ifdef RDKIT_ABBREVIATIONS_BUILD
