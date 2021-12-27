@@ -1,4 +1,4 @@
-//! Library for accessing RDKit functionality via RDKitMinimalLib and cffi
+//! Some more involved examples for using the cffi interface functions
 //!
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
