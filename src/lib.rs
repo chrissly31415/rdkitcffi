@@ -8,6 +8,8 @@
 //! transferred from the backend via the cffi interface as string types.
 //! This also means that the structure of objects is significantly different from the C/C++ and python APIs.
 //!
+//! Check the [github repo](https://github.com/chrissly31415/rdkitcffi).
+//! 
 //! Please have a look at the examples below and the test functions.  
 //!
 //! # Examples
@@ -76,9 +78,7 @@
 //! use polars::df;
 //!
 //! let mut mol_list : Vec<Molecule> = Molecule::read_sdfile("examples/test.sdf");
-//!
 //! let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
-//!
 //! let df = df!( "smiles" => a).unwrap();
 //!
 //! ```
