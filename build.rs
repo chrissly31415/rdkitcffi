@@ -41,7 +41,7 @@ fn main() {
         .header("include/cffiwrapper.h")
         .clang_arg("-Iinclude/boost")
         .clang_arg("-Iinclude")
-        .allowlist_function("version")
+/*         .allowlist_function("version")
         .allowlist_function("enable_logging")
         .allowlist_function("get_smiles")
         .allowlist_function("get_mol")
@@ -57,7 +57,7 @@ fn main() {
         .allowlist_function("free") 
         .allowlist_function("remove_all_hs") 
         .allowlist_function("free_ptr") 
-        .allowlist_var("size_t") 
+        .allowlist_var("size_t")  */
  
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
 
