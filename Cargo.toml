@@ -1,6 +1,6 @@
 [package]
 name = "rdkitcffi"
-version = "0.1.0"
+version = "0.0.1"
 links = "rdkitcffi"
 build = "build.rs"
 edition = "2018"

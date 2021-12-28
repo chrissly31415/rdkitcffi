@@ -143,7 +143,7 @@ impl Molecule {
         json_mol.bonds.len()
     }
 
-    // Get a 2 dimensiona vector with atomic coordinates
+    /// Get a 2 dimensional vector with atomic coordinates
     pub fn get_coords(&self) -> Vec<Vec<f32>> {
         let json_mol = self.get_JsonMolecule("");
         let conf: &JsonConformer = json_mol.conformers.get(0).unwrap().clone();
@@ -277,7 +277,7 @@ impl Molecule {
             );
         }
     }
-    /// Gets a MDL molfile content as a string, see also: https://en.wikipedia.org/wiki/Chemical_table_file
+    /// Gets a [MDL molfile](https://en.wikipedia.org/wiki/Chemical_table_file) content as a string.
     pub fn get_molblock(&self, json_info: &str) -> String {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
