@@ -3,13 +3,13 @@
 //! It makes use of its new (and also still experimental) C Foreign Function Interface (CFFI), see also this [blog post](https://greglandrum.github.io/rdkit-blog/technical/2021/05/01/rdkit-cffi-part1.html).
 //!
 //! Use it at your own risk, its not recommended yet for productive use and only available for linux :-)
-//! 
+//!
 //! Please note, that only a limited functionality is being exposed via cffi by RDKit. Structured data is
 //! transferred from the backend via the cffi interface as string types.
 //! This also means that the structure of objects is significantly different from the C/C++ and python APIs.
 //!
 //! Check the [github repo](https://github.com/chrissly31415/rdkitcffi).
-//! 
+//!
 //! Please have a look at the examples below and the test functions.  
 //!
 //! # Examples
@@ -41,7 +41,7 @@
 //!
 //! let orig_smiles = "OCCC#CO";
 //! let pkl_mol = Molecule::new(orig_smiles, "");
-//! println!("json molecule:    {:?}", pkl_mol.get_JsonMolecule(""));
+//! println!("json molecule:    {:?}", pkl_mol.get_JsonMolecule());
 //!
 //! ```
 //!
@@ -58,18 +58,18 @@
 //! ```
 //!
 //! Computing RDKit descriptors
-//! 
+//!
 //! ```
 //! use rdkitcffi::Molecule;
-//! 
+//!
 //! let orig_smiles = "CCCN";
 //! let pkl_mol = Molecule::new(orig_smiles, "");
 //! let desc = pkl_mol.get_descriptors();
 //! let nrot = desc.get("NumRotatableBonds");
 //! let logp = desc.get("CrippenClogP");
-//! 
+//!
 //! ```
-//! 
+//!
 //! Creating a polars dataframe:
 //!
 //! ```
@@ -85,6 +85,8 @@
 //!
 //!
 //!
+use std::error::Error;
+
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value;
 use std::collections::HashMap;
@@ -92,8 +94,7 @@ use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::fs::read_to_string;
 use std::mem;
-use std::os::raw::c_char;
-use std::os::raw::c_void;
+use std::os::raw::{c_char, c_int, c_void};
 
 mod bindings;
 
@@ -102,7 +103,7 @@ use crate::bindings::{canonical_tautomer, cleanup, neutralize, normalize, reioni
 use crate::bindings::{free, free_ptr, size_t};
 use crate::bindings::{
     get_descriptors, get_inchi, get_inchikey_for_inchi, get_json, get_mol, get_molblock,
-    get_morgan_fp, get_smiles,
+    get_morgan_fp, get_morgan_fp_as_bytes, get_smiles,
 };
 
 /// Basic class, implementing most functionality as member functions of a molecule object
@@ -111,41 +112,50 @@ pub struct Molecule {
     pkl_mol: *mut i8,
 }
 
-impl Molecule {
-    pub fn new(input: &str, json_info: &str) -> Molecule {
+impl Drop for Molecule {
+    fn drop(&mut self) {
         unsafe {
-            let input_cstr = CString::new(input).unwrap();
-            let json_info = CString::new(json_info).unwrap();
-
-            let pkl_size: *mut size_t = libc::malloc(mem::size_of::<u64>()) as *mut u64;
-            let pkl_mol = get_mol(input_cstr.as_ptr(), pkl_size, json_info.as_ptr());
-            Molecule { pkl_size, pkl_mol }
+            free(self.pkl_size as *mut c_void);
+            free_ptr(self.pkl_mol);
         }
+    }
+}
+
+impl Molecule {
+    pub fn new(input: &str, json_info: &str) -> Self {
+        let input_cstr = CString::new(input).unwrap();
+        let json_info = CString::new(json_info).unwrap();
+        let pkl_size: *mut size_t = unsafe { libc::malloc(mem::size_of::<u64>()) as *mut u64 };
+        let pkl_mol = unsafe { get_mol(input_cstr.as_ptr(), pkl_size, json_info.as_ptr()) };
+        if pkl_mol.is_null() {
+            panic!("Could not create molecule!");
+        }
+        Molecule { pkl_size, pkl_mol }
     }
 
     pub fn get_atoms(&self) -> Vec<JsonAtom> {
-        let json_mol = self.get_JsonMolecule("");
+        let json_mol = self.get_JsonMolecule();
         json_mol.atoms
     }
 
     pub fn get_numatoms(&self) -> usize {
-        let json_mol = self.get_JsonMolecule("");
+        let json_mol = self.get_JsonMolecule();
         json_mol.atoms.len()
     }
 
     pub fn get_bonds(&self) -> Vec<JsonBond> {
-        let json_mol = self.get_JsonMolecule("");
+        let json_mol = self.get_JsonMolecule();
         json_mol.bonds
     }
 
     pub fn get_numbonds(&self) -> usize {
-        let json_mol = self.get_JsonMolecule("");
+        let json_mol = self.get_JsonMolecule();
         json_mol.bonds.len()
     }
 
     /// Get a 2 dimensional vector with atomic coordinates
     pub fn get_coords(&self) -> Vec<Vec<f32>> {
-        let json_mol = self.get_JsonMolecule("");
+        let json_mol = self.get_JsonMolecule();
         let conf: &JsonConformer = json_mol.conformers.get(0).unwrap().clone();
         conf.coords.to_owned()
     }
@@ -156,8 +166,8 @@ impl Molecule {
         unsafe {
             let can_smiles_cchar: *mut c_char =
                 get_smiles(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
-            let can_smiles: &str = CStr::from_ptr(can_smiles_cchar).to_str().unwrap();
-            can_smiles.to_owned()
+            let can_smiles: String = CStr::from_ptr(can_smiles_cchar).to_string_lossy().into_owned();
+            can_smiles
         }
     }
 
@@ -223,19 +233,22 @@ impl Molecule {
         unsafe {
             let inchi_cchar: *mut c_char =
                 get_inchi(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
-            let inchi: &str = CStr::from_ptr(inchi_cchar).to_str().unwrap();
-            inchi.to_owned()
+            let inchi: String = CStr::from_ptr(inchi_cchar).to_string_lossy().into_owned();
+            free_ptr(inchi_cchar);
+            inchi
         }
     }
 
     pub fn get_inchikey(&self, json_info: &str) -> String {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
-            let mut inchi_cchar: *mut c_char =
+            let a: *mut c_char =
                 get_inchi(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
-            inchi_cchar = get_inchikey_for_inchi(inchi_cchar);
-            let inchikey: &str = CStr::from_ptr(inchi_cchar).to_str().unwrap();
-            inchikey.to_owned()
+            let b: *mut c_char = get_inchikey_for_inchi(a);
+            let inchikey: String = CStr::from_ptr(b).to_string_lossy().into_owned();
+            free_ptr(a);
+            free_ptr(b);
+            inchikey
         }
     }
 
@@ -256,15 +269,16 @@ impl Molecule {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
             let rdkit_json_cchar = get_json(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
-            let mol_json_str = CStr::from_ptr(rdkit_json_cchar).to_str().unwrap();
-            mol_json_str.to_owned()
+            let mol_json_str = CStr::from_ptr(rdkit_json_cchar).to_string_lossy().into_owned();
+            free_ptr(rdkit_json_cchar);
+            mol_json_str
         }
     }
 
     /// Gets a representation as a JSON Molecule object
-    pub fn get_JsonMolecule(&self, json_info: &str) -> JsonMolecule {
-        let json_info = self.get_json("");
-        JsonMolecule::JsonMolFromJson(&json_info)
+    pub fn get_JsonMolecule(&self) -> JsonMolecule {
+        let json_repr = self.get_json("");
+        JsonMolecule::JsonMolFromJson(&json_repr)
     }
 
     pub fn set_3d_coords(&mut self, json_info: &str) {
@@ -296,11 +310,11 @@ impl Molecule {
     }
 
     pub fn get_descriptors_as_string(&self) -> String {
-        unsafe {
-            let desc_cchar: *mut c_char = get_descriptors(self.pkl_mol, *self.pkl_size);
-            let desc_string: &str = CStr::from_ptr(desc_cchar).to_str().unwrap();
-            desc_string.to_owned()
-        }
+        let desc_cchar: *mut c_char = unsafe { get_descriptors(self.pkl_mol, *self.pkl_size) };
+        let desc_string: &str = unsafe { CStr::from_ptr(desc_cchar).to_str().unwrap() };
+        let res = desc_string.to_owned();
+        unsafe { free_ptr(desc_cchar) };
+        res
     }
 
     pub fn get_morgan_fp_as_string(&self, json_info: &str) -> String {
@@ -309,8 +323,33 @@ impl Molecule {
             let fp_cchar: *mut c_char =
                 get_morgan_fp(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
             let fp_string: &str = CStr::from_ptr(fp_cchar).to_str().unwrap();
-            fp_string.to_owned()
+            let res = fp_string.to_owned();
+            free_ptr(fp_cchar);
+            res
         }
+    }
+
+    pub fn get_morgan_fp_as_bytes(&self, json_info: &str) -> Vec<i8> {
+        let json_info = CString::new(json_info).unwrap();
+        unsafe {
+            let n_bytes: *mut size_t = libc::malloc(mem::size_of::<u64>()) as *mut size_t;
+            let fp_cchar: *mut c_char =
+                get_morgan_fp_as_bytes(self.pkl_mol, *self.pkl_size, n_bytes, json_info.as_ptr());
+            let mut fp_bytes: Vec<i8> = Vec::new();
+            for pos in 0..*n_bytes {
+                let nb: i8 = *fp_cchar.offset(pos as _);
+                fp_bytes.push(nb);
+            }
+            let res = fp_bytes.to_owned();
+            free(n_bytes as *mut c_void);
+            free_ptr(fp_cchar);
+            res
+        }
+    }
+
+    pub fn get_morgan_fp(&self, json_info: &str) {
+        let json_info = CString::new(json_info).unwrap();
+        let desc_string = self.get_morgan_fp_as_string("");
     }
 
     /// Gets a molecule representation from a string
@@ -538,11 +577,27 @@ mod tests {
     #[test]
     fn morgan_fp() {
         let smiles = "OCC=CCO";
-        let options = "{\"radius\":2,\"nBits\":32}";
+        let options = "{\"radius\":2,\"nBits\":64}";
         let pkl_mol = Molecule::new(smiles, "");
         let fps = pkl_mol.get_morgan_fp_as_string(options);
         println!("Fingerprints: {:?}", fps);
-        assert_eq!(fps, "00000001000110001000001000010011");
+        println!("Length: {:?}", fps.len());
+        assert_eq!(
+            fps,
+            "0000000000011000100000000000001000000001000000000000001000010001"
+        );
+    }
+
+    #[test]
+    fn morgan_fp_bytes() {
+        let smiles = "OCC=CCO";
+        let options = "{\"radius\":2,\"nBits\":64}";
+        let pkl_mol = Molecule::new(smiles, "");
+        let fps = pkl_mol.get_morgan_fp_as_bytes(options);
+        for k in fps.iter() {
+            println!("value: {:?}", k);
+        }
+        assert_eq!(fps.len(), 8);
     }
 
     #[test]
@@ -596,7 +651,7 @@ mod tests {
     fn get_json_molecule() {
         let orig_smiles = "C#C";
         let pkl_mol = Molecule::new(orig_smiles, "");
-        let json_mol = pkl_mol.get_JsonMolecule("");
+        let json_mol = pkl_mol.get_JsonMolecule();
         println!("json molecule:    {:?}", json_mol);
         let atoms = json_mol.atoms;
         assert_eq!(atoms.len(), 2);

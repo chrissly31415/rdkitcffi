@@ -1,6 +1,8 @@
 //https://rust-lang.github.io/rust-bindgen/tutorial-3.html
 //https://michael-f-bryan.github.io/rust-ffi-guide/
 //https://medium.com/dwelo-r-d/using-c-libraries-in-rust-13961948c72a
+//https://medium.com/dwelo-r-d/wrapping-unsafe-c-libraries-in-rust-d75aeb283c65
+//https://github.com/rdkit/rdkit/blob/master/Code/MinimalLib/cffi_test.c
 
 extern crate bindgen;
 extern crate pkg_config;
