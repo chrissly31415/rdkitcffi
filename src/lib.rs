@@ -164,9 +164,10 @@ impl Molecule {
     pub fn get_smiles(&self, json_info: &str) -> String {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
-            let can_smiles_cchar: *mut c_char =
+            let a: *mut c_char =
                 get_smiles(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
-            let can_smiles: String = CStr::from_ptr(can_smiles_cchar).to_string_lossy().into_owned();
+            let can_smiles: String = CStr::from_ptr(a).to_string_lossy().into_owned();
+            free_ptr(a);
             can_smiles
         }
     }
@@ -297,8 +298,9 @@ impl Molecule {
         unsafe {
             let mblock_cchar: *mut c_char =
                 get_molblock(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
-            let mblock: &str = CStr::from_ptr(mblock_cchar).to_str().unwrap();
-            mblock.to_owned()
+            let res = CStr::from_ptr(mblock_cchar).to_string_lossy().into_owned();
+            free_ptr(mblock_cchar);
+            res
         }
     }
 
