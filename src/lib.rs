@@ -29,7 +29,7 @@
 //! ```
 //! use rdkitcffi::Molecule;
 //!
-//! let mut mol_list : Vec<Molecule> = Molecule::read_sdfile("examples/test.sdf");
+//! let mut mol_list : Vec<Molecule> = Molecule::read_sdfile("data/test.sdf");
 //! mol_list.iter_mut().for_each(|m| m.remove_all_hs());
 //!
 //! ```
@@ -77,15 +77,12 @@
 //! use polars::prelude::*;
 //! use polars::df;
 //!
-//! let mut mol_list : Vec<Molecule> = Molecule::read_sdfile("examples/test.sdf");
+//! let mut mol_list : Vec<Molecule> = Molecule::read_sdfile("data/test.sdf");
 //! let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
 //! let df = df!( "smiles" => a).unwrap();
 //!
 //! ```
 //!
-//!
-//!
-use std::error::Error;
 
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value;
@@ -94,16 +91,18 @@ use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::fs::read_to_string;
 use std::mem;
-use std::os::raw::{c_char, c_int, c_void};
+use std::os::raw::{c_char, c_void};
+
+pub mod examples;
 
 mod bindings;
 
-use crate::bindings::{add_hs, remove_all_hs, set_3d_coords};
-use crate::bindings::{canonical_tautomer, cleanup, neutralize, normalize, reionize};
-use crate::bindings::{free, free_ptr, size_t};
-use crate::bindings::{
-    get_descriptors, get_inchi, get_inchikey_for_inchi, get_json, get_mol, get_molblock,
-    get_morgan_fp, get_morgan_fp_as_bytes, get_smiles,
+use bindings::{add_hs, remove_all_hs, set_3d_coords};
+use bindings::{canonical_tautomer, cleanup, neutralize, normalize, reionize};
+use bindings::{free, free_ptr, size_t};
+use bindings::{
+    get_cxsmiles, get_descriptors, get_inchi, get_inchikey_for_inchi, get_json, get_mol,
+    get_molblock, get_morgan_fp, get_morgan_fp_as_bytes, get_qmol, get_smarts, get_smiles,get_substruct_match, get_substruct_matches
 };
 
 /// Basic class, implementing most functionality as member functions of a molecule object
@@ -164,11 +163,54 @@ impl Molecule {
     pub fn get_smiles(&self, json_info: &str) -> String {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
-            let a: *mut c_char =
-                get_smiles(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
+            let a: *mut c_char = get_smiles(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
             let can_smiles: String = CStr::from_ptr(a).to_string_lossy().into_owned();
             free_ptr(a);
             can_smiles
+        }
+    }
+
+    /// get SMARTS
+    pub fn get_smarts(&self, json_info: &str) -> String {
+        let json_info = CString::new(json_info).unwrap();
+        unsafe {
+            let a: *mut c_char = get_smarts(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
+            let smarts: String = CStr::from_ptr(a).to_string_lossy().into_owned();
+            free_ptr(a);
+            smarts
+        }
+    }
+
+    /// get CXSMILES
+    pub fn get_cxsmiles(&self, json_info: &str) -> String {
+        let json_info = CString::new(json_info).unwrap();
+        unsafe {
+            let a: *mut c_char = get_cxsmiles(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
+            let cxsmiles: String = CStr::from_ptr(a).to_string_lossy().into_owned();
+            free_ptr(a);
+            cxsmiles
+        }
+    }
+
+    /// find a substructure match via query molecule
+    pub fn get_substruct_match(&self, query: &Molecule, json_info: &str) -> String {
+        let json_info = CString::new(json_info).unwrap();
+        unsafe {
+            let a: *mut c_char = get_substruct_match(self.pkl_mol, *self.pkl_size, query.pkl_mol, *query.pkl_size, json_info.as_ptr());
+            let res: String = CStr::from_ptr(a).to_string_lossy().into_owned();
+            free_ptr(a);
+            res
+        }
+    }
+
+    /// find  substructure matches via query molecule
+    pub fn get_substruct_matches(&self, query: &Molecule, json_info: &str) -> String {
+        let json_info = CString::new(json_info).unwrap();
+        unsafe {
+            let a: *mut c_char = get_substruct_matches(self.pkl_mol, *self.pkl_size, query.pkl_mol, *query.pkl_size, json_info.as_ptr());
+            let res: String = CStr::from_ptr(a).to_string_lossy().into_owned();
+            free_ptr(a);
+            res
         }
     }
 
@@ -243,8 +285,7 @@ impl Molecule {
     pub fn get_inchikey(&self, json_info: &str) -> String {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
-            let a: *mut c_char =
-                get_inchi(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
+            let a: *mut c_char = get_inchi(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
             let b: *mut c_char = get_inchikey_for_inchi(a);
             let inchikey: String = CStr::from_ptr(b).to_string_lossy().into_owned();
             free_ptr(a);
@@ -270,7 +311,9 @@ impl Molecule {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
             let rdkit_json_cchar = get_json(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
-            let mol_json_str = CStr::from_ptr(rdkit_json_cchar).to_string_lossy().into_owned();
+            let mol_json_str = CStr::from_ptr(rdkit_json_cchar)
+                .to_string_lossy()
+                .into_owned();
             free_ptr(rdkit_json_cchar);
             mol_json_str
         }
@@ -354,8 +397,20 @@ impl Molecule {
         let desc_string = self.get_morgan_fp_as_string("");
     }
 
-    /// Gets a molecule representation from a string
-    pub fn PklFromString(input: &str, json_info: &str) -> (*mut i8, *mut size_t) {
+    ///Gets a query molecule from a SMARTS
+    pub fn get_qmol(input: &str, json_info: &str) -> Option<Molecule> {
+        let input_cstr = CString::new(input).unwrap();
+        let json_info = CString::new(json_info).unwrap();
+        let pkl_size: *mut size_t = unsafe { libc::malloc(mem::size_of::<u64>()) as *mut u64 };
+        let pkl_mol = unsafe { get_qmol(input_cstr.as_ptr(), pkl_size, json_info.as_ptr()) };
+        if pkl_mol.is_null() {
+            return None;
+        }
+        return Some(Molecule { pkl_size, pkl_mol });
+    }
+
+    /// Gets a molecule representation from a string -> memory leak!!
+    /*     pub fn PklFromString(input: &str, json_info: &str) -> (*mut i8, *mut size_t) {
         let input_cstr = CString::new(input).unwrap();
         let json_info = CString::new(json_info).unwrap();
         unsafe {
@@ -363,7 +418,7 @@ impl Molecule {
             let pkl_mol = get_mol(input_cstr.as_ptr(), pkl_size, json_info.as_ptr());
             (pkl_mol, pkl_size)
         }
-    }
+    } */
 
     /// read a classical .smi file
     pub fn read_smifile(smi_file: &str) -> Vec<Molecule> {
@@ -515,24 +570,14 @@ impl JsonMolecule {
 }
 
 pub fn JSONFromString(input: &str, json_info: &str) -> String {
-    let (pkl_mol, pkl_size) = Molecule::PklFromString(input, json_info);
-    let json_info = CString::new(json_info).unwrap();
-    let mut mol_json_str = "";
-    unsafe {
-        let rdkit_json_cchar = get_json(pkl_mol, *pkl_size, json_info.as_ptr());
-        mol_json_str = CStr::from_ptr(rdkit_json_cchar).to_str().unwrap();
-
-        free(pkl_size as *mut c_void);
-        free_ptr(pkl_mol);
-    }
+    //let (pkl_mol, pkl_size) = Molecule::PklFromString(input, json_info);
+    let pkl_mol = Molecule::new(input, json_info);
+    let mol_json_str = pkl_mol.get_json(json_info);
     mol_json_str.to_owned()
 }
 
 #[cfg(test)]
-mod examples;
 mod tests {
-    use std::borrow::Borrow;
-
     use super::*;
     #[test]
     fn smiles2descriptors() {
@@ -548,7 +593,7 @@ mod tests {
 
     #[test]
     fn smifile2molecules() {
-        let mut mol_list: Vec<Molecule> = Molecule::read_smifile("examples/ringtest.smi");
+        let mut mol_list: Vec<Molecule> = Molecule::read_smifile("data/ringtest.smi");
         for (i, mol) in mol_list.iter_mut().enumerate() {
             mol.remove_all_hs();
             println!(
@@ -562,7 +607,7 @@ mod tests {
     }
     #[test]
     fn sdfile2molecules() {
-        let mut mol_list: Vec<Molecule> = Molecule::read_sdfile("examples/test.sdf");
+        let mut mol_list: Vec<Molecule> = Molecule::read_sdfile("data/test.sdf");
         for (i, mol) in mol_list.iter_mut().enumerate() {
             mol.remove_all_hs();
             println!(
@@ -694,5 +739,27 @@ mod tests {
         pkl_mol.normalize("");
         let smiles = pkl_mol.get_smiles("");
         assert_eq!(smiles, "CN=[N+]=[N-]");
+    }
+    #[test]
+    fn smarts_cxssmiles() {
+        let orig_smiles = "CN=N#N";
+        let pkl_mol = Molecule::new(orig_smiles, "");
+        let smarts = pkl_mol.get_smarts("");
+        assert_eq!(smarts, "[#6]-[#7]=[#7+]=[#7-]");
+
+        let cx_input = "CO |$C2;O1$| carbon monoxide'";
+        let pkl_mol2 = Molecule::new(cx_input, "");
+        let cxsmiles = pkl_mol2.get_cxsmiles("");
+        println!("cxsmiles: {:?}",cxsmiles);
+        assert_eq!(cxsmiles, "CO |$C2;O1$|");
+    }
+    #[test]
+    fn find_substructure() {
+        let  mol = Molecule::new("Cl[C@H](F)C[C@H](F)Cl", "");
+        let  query_mol = Molecule::get_qmol("Cl[C@@H](F)C", "").unwrap();
+        let res = mol.get_substruct_match(&query_mol, "");
+        assert_eq!(res, "{\"atoms\":[0,1,2,3],\"bonds\":[0,1,2]}");
+        let res = mol.get_substruct_matches(&query_mol, "");
+        assert_eq!(res, "[{\"atoms\":[0,1,2,3],\"bonds\":[0,1,2]},{\"atoms\":[6,4,5,3],\"bonds\":[5,4,3]}]");
     }
 }

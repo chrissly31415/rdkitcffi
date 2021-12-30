@@ -56,8 +56,23 @@ fn main() {
         .allowlist_function("add_hs")
         .allowlist_function("set_3d_coords") 
         .allowlist_function("remove_all_hs") 
+
+        .allowlist_function("get_substruct_matches") 
+        .allowlist_function("get_substruct_match") 
+        .allowlist_function("get_cxsmiles")
+        .allowlist_function("get_smarts") 
+        get_cxsmiles
+        get_smarts
+        get_svg
+        get_qmol
+
+        charge_parent
+        fragment_parent
+        prefer_coordgen
+        set_2d_coords
+        set_2d_coords_aligned
+
         .allowlist_function("free") 
-        .allowlist_function("remove_all_hs") 
         .allowlist_function("free_ptr") 
         .allowlist_var("size_t")  */
  
