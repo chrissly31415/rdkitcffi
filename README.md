@@ -1,6 +1,6 @@
 # rdkitcffi
 
-This is an experimental rust wrapper for some functionality of the wonderful [RDKit](https://www.rdkit.org/) library.
+This is an &#128679; experimental  &#128679; rust wrapper for some functionality of the wonderful [RDKit](https://www.rdkit.org/) library.
 
 It makes use of its new (and still experimental) C Foreign Function Interface (CFFI), see also this [blog post](https://greglandrum.github.io/rdkit-blog/technical/2021/05/01/rdkit-cffi-part1.html).
  
@@ -11,7 +11,7 @@ Have a look at the examples below and the test functions.
 Note: there are still some dependencies to specific version of boost and rdkit (some headers & the shared lib), that imply some manual work, see also the installation section.  
 Currently those deps are added directly to the repository for the sake of simplicity, of course this should be done in a better and more dynamic way.  
 
-Currently, only linux is supported, however support for macos should also be viable.
+Currently, only linux is supported, however support for macos should also be viable. 
  
 ## Examples
 

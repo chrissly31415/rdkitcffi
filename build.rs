@@ -43,7 +43,7 @@ fn main() {
         .header("include/cffiwrapper.h")
         .clang_arg("-Iinclude/boost")
         .clang_arg("-Iinclude")
-/*         .allowlist_function("version")
+/*      .allowlist_function("version")
         .allowlist_function("enable_logging")
         .allowlist_function("get_smiles")
         .allowlist_function("get_mol")
@@ -61,11 +61,9 @@ fn main() {
         .allowlist_function("get_substruct_match") 
         .allowlist_function("get_cxsmiles")
         .allowlist_function("get_smarts") 
-        get_cxsmiles
-        get_smarts
-        get_svg
-        get_qmol
+        .allowlist_function("get_qmol") 
 
+        get_svg
         charge_parent
         fragment_parent
         prefer_coordgen
