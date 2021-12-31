@@ -12,37 +12,86 @@ Note: there are still some dependencies to specific version of boost and rdkit (
 Currently those deps are added directly to the repository for the sake of simplicity, of course this should be done in a better and more dynamic way.  
 
 Currently, only linux is supported, however support for macos should also be viable. 
- 
-## Examples
 
-Basic usage:
- 
-```
-use rdkitcffi::Molecule;
- 
-let pkl_mol = Molecule::new("OCCC#CO", "");
-let desc = pkl_mol.get_descriptors();
-```
- 
-Working with SD files:
- 
-```
-use rdkitcffi::Molecule;
- 
-let mut mol_list : Vec<Molecule> = Molecule::read_sdfile("examples/test.sdf");
-mol_list.iter_mut().for_each(|m| m.remove_all_hs());
- 
-```
+ ## Examples
 
-Getting a JSON version of the molecule (via serde_json):
+ Basic usage:
 
-```
-use rdkitcffi::Molecule;
+ ```
+ use rdkitcffi::Molecule;
+
+ let smiles = "OCCC#CO";
+ let pkl_mol = Molecule::new(smiles, "").unwrap();
  
-let orig_smiles = "OCCC#CO";
-let pkl_mol = Molecule::new(orig_smiles, "");
-println!("json molecule:    {:?}", pkl_mol.get_JsonMolecule(""));
-```
+ let desc = pkl_mol.get_descriptors();
+ ```
+
+ Working with SD files:
+
+ ```
+
+ let mut mol_list : Vec<rdkitcffi::Molecule> = rdkitcffi::read_sdfile("data/test.sdf");
+ mol_list.iter_mut().for_each(|m| m.remove_all_hs());
+
+ ```
+
+ Rust like error handling
+ 
+ ```
+ use rdkitcffi::Molecule;
+ 
+ let result = Molecule::new("OCCO", "");
+ match result {
+    Some(m) => println!("Result: {:?}", m),
+    None => println!("Could not get molecule!"),
+};
+ ```
+ 
+ Getting a JSON version of the molecule (via serde_json):
+
+ ```
+ use rdkitcffi::Molecule;
+
+ let pkl_mol = Molecule::new("OCCO", "").unwrap();
+ println!("json: {:?}", pkl_mol.get_JsonMolecule());
+
+ ```
+
+ Neutralizing a zwitterion
+
+ ```
+ use rdkitcffi::Molecule;
+
+ let mut pkl_mol = Molecule::new("C(C(=O)[O-])[NH3+]", "").unwrap();
+ pkl_mol.neutralize("");
+ println!("{:?}", pkl_mol.get_smiles(""));
+
+ ```
+
+ Computing RDKit descriptors
+
+ ```
+ use rdkitcffi::Molecule;
+
+ let pkl_mol = Molecule::new("CCCN", "").unwrap();
+ let desc = pkl_mol.get_descriptors();
+ let nrot = desc.get("NumRotatableBonds");
+ let logp = desc.get("CrippenClogP");
+
+ ```
+
+ Creating a polars dataframe:
+
+ ```
+ use rdkitcffi::Molecule;
+ use polars::prelude::*;
+ use polars::df;
+
+ let mut mol_list : Vec<Molecule> = rdkitcffi::read_smifile("data/test.smi");
+ let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
+ let df = df!( "smiles" => a).unwrap();
+
+ ```
 
 ## Installation
 
