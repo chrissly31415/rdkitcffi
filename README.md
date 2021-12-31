@@ -20,8 +20,7 @@ Basic usage:
 ```
 use rdkitcffi::Molecule;
  
-let orig_smiles = "OCCC#CO";
-let pkl_mol = Molecule::new(orig_smiles, "");
+let pkl_mol = Molecule::new("OCCC#CO", "");
 let desc = pkl_mol.get_descriptors();
 ```
  

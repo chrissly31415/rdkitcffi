@@ -34,7 +34,7 @@ use std::io::Cursor;
         use super::*;
         #[test]
         fn polars_df1() {
-            let mut mol_list: Vec<Molecule> = Molecule::read_sdfile("data/test.sdf");
+            let mut mol_list: Vec<Molecule> = crate::read_sdfile("data/test.sdf");
             mol_list.iter_mut().for_each(|m| m.remove_all_hs());
             let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
             let b: Vec<_> = mol_list
@@ -63,7 +63,7 @@ use std::io::Cursor;
                 enable_logging();
             }
 
-            let mut mol_list: Vec<Molecule> = Molecule::read_sdfile("data/large.sdf"); // ist failing....
+            let mut mol_list: Vec<Molecule> = crate::read_sdfile("data/large.sdf"); // ist failing....
             let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
             println!("here");
             mol_list.iter_mut().for_each(|m| m.canonical_tautomer(""));
@@ -80,7 +80,7 @@ use std::io::Cursor;
 
         #[test]
         fn polars_df2() {
-            let mol_list: Vec<Molecule> = Molecule::read_sdfile("data/test.sdf");
+            let mol_list: Vec<Molecule> = crate::read_sdfile("data/test.sdf");
             // we are using json to deal with dimension
             let basic_json = mol_list
                 .iter()
