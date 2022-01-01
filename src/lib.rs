@@ -21,7 +21,7 @@
 //!
 //! let smiles = "OCCC#CO";
 //! let pkl_mol = Molecule::new(smiles, "").unwrap();
-//! 
+//!
 //! let desc = pkl_mol.get_descriptors();
 //! ```
 //!
@@ -34,18 +34,18 @@
 //!
 //! ```
 //!
-//! Rust like error handling
-//! 
+//! Dealing with invalid/None molecules
+//!
 //! ```
 //! use rdkitcffi::Molecule;
-//! 
+//!
 //! let result = Molecule::new("OCCO", "");
 //! match result {
 //!    Some(m) => println!("Result: {:?}", m),
 //!    None => println!("Could not get molecule!"),
 //!};
 //! ```
-//! 
+//!
 //! Getting a JSON version of the molecule (via serde_json):
 //!
 //! ```
@@ -98,10 +98,10 @@ use serde_json::value::Value;
 use std::collections::HashMap;
 
 use std::ffi::{CStr, CString};
+use std::fmt::{Debug};
 use std::fs::read_to_string;
 use std::mem;
 use std::os::raw::{c_char, c_void};
-use std::fmt::{Debug,Formatter,Result};
 
 pub mod examples;
 
@@ -112,7 +112,8 @@ use bindings::{canonical_tautomer, cleanup, neutralize, normalize, reionize};
 use bindings::{free, free_ptr, size_t};
 use bindings::{
     get_cxsmiles, get_descriptors, get_inchi, get_inchikey_for_inchi, get_json, get_mol,
-    get_molblock, get_morgan_fp, get_morgan_fp_as_bytes, get_qmol, get_smarts, get_smiles,get_substruct_match, get_substruct_matches
+    get_molblock, get_morgan_fp, get_morgan_fp_as_bytes, get_qmol, get_smarts, get_smiles,
+    get_substruct_match, get_substruct_matches, get_v3kmolblock, get_svg
 };
 
 /// Basic class, implementing most functionality as member functions of a molecule object
@@ -134,12 +135,24 @@ impl Drop for Molecule {
 impl std::fmt::Debug for Molecule {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let smiles = self.get_smiles("");
-        write!(f, "{}",smiles)
+        write!(f, "{}", smiles)
     }
 }
 
 impl Molecule {
-    pub fn new(input: &str, json_info: &str) -> Option<Self> {
+    /// Constructor returning an optional molecule
+    pub fn new(input: &str, json_info: &str) -> Option<Molecule> {
+        let input_cstr = CString::new(input).unwrap();
+        let json_info = CString::new(json_info).unwrap();
+        let pkl_size: *mut size_t = unsafe { libc::malloc(mem::size_of::<u64>()) as *mut u64 };
+        let pkl_mol = unsafe { get_mol(input_cstr.as_ptr(), pkl_size, json_info.as_ptr()) };
+        if pkl_mol.is_null() {
+            return None;
+        }
+        Some(Molecule { pkl_size, pkl_mol })
+    }
+    /// Constructor returning Molecule, panics if None
+    pub fn get_mol(input: &str, json_info: &str) -> Molecule {
         let input_cstr = CString::new(input).unwrap();
         let json_info = CString::new(json_info).unwrap();
         let pkl_size: *mut size_t = unsafe { libc::malloc(mem::size_of::<u64>()) as *mut u64 };
@@ -147,10 +160,34 @@ impl Molecule {
         if pkl_mol.is_null() {
             panic!("Could not create molecule!");
         }
-        Some(Molecule { pkl_size, pkl_mol })
+        Molecule { pkl_size, pkl_mol }
     }
 
+    /// Gets a commonchem representation as JSON string
+    pub fn get_json(&self, json_info: &str) -> String {
+        let json_info = CString::new(json_info).unwrap();
+        unsafe {
+            let rdkit_json_cchar = get_json(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
+            let mol_json_str = CStr::from_ptr(rdkit_json_cchar)
+                .to_string_lossy()
+                .into_owned();
+            free_ptr(rdkit_json_cchar);
+            mol_json_str
+        }
+    }
 
+    /// Gets a fully typed common chem like json object
+    pub fn get_commonchem(&self) -> JsonBase {
+        let json_repr = self.get_json("");
+        let res: JsonBase = serde_json::from_str(&json_repr).expect("Wrong JSON format!?");
+        res
+    }
+
+    /// Gets the underlying Molecule object of the common chem structure
+    pub fn get_JsonMolecule(&self) -> JsonMolecule {
+        let json_repr = self.get_json("");
+        JsonMolecule::JsonMolFromJson(&json_repr)
+    }
 
     pub fn get_atoms(&self) -> Vec<JsonAtom> {
         let json_mol = self.get_JsonMolecule();
@@ -216,23 +253,49 @@ impl Molecule {
     pub fn get_substruct_match(&self, query: &Molecule, json_info: &str) -> String {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
-            let a: *mut c_char = get_substruct_match(self.pkl_mol, *self.pkl_size, query.pkl_mol, *query.pkl_size, json_info.as_ptr());
+            let a: *mut c_char = get_substruct_match(
+                self.pkl_mol,
+                *self.pkl_size,
+                query.pkl_mol,
+                *query.pkl_size,
+                json_info.as_ptr(),
+            );
             let res: String = CStr::from_ptr(a).to_string_lossy().into_owned();
             free_ptr(a);
             res
         }
     }
 
-    /// find  substructure matches via query molecule
+    /// find several substructure matches via query molecule
     pub fn get_substruct_matches(&self, query: &Molecule, json_info: &str) -> String {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
-            let a: *mut c_char = get_substruct_matches(self.pkl_mol, *self.pkl_size, query.pkl_mol, *query.pkl_size, json_info.as_ptr());
+            let a: *mut c_char = get_substruct_matches(
+                self.pkl_mol,
+                *self.pkl_size,
+                query.pkl_mol,
+                *query.pkl_size,
+                json_info.as_ptr(),
+            );
             let res: String = CStr::from_ptr(a).to_string_lossy().into_owned();
             free_ptr(a);
             res
         }
     }
+
+    /// get svg image
+    pub fn get_svg(&self, json_info: &str) -> String {
+        let json_info = CString::new(json_info).unwrap();
+        unsafe {
+            let a: *mut c_char = get_svg(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
+            let svg: String = CStr::from_ptr(a).to_string_lossy().into_owned();
+            free_ptr(a);
+            svg
+        }
+    }
+
+
+    
 
     /// Normalize the topology of a molecule
     pub fn normalize(&mut self, json_info: &str) {
@@ -326,25 +389,9 @@ impl Molecule {
         }
     }
 
-    /// Gets a representation as JSON string
-    pub fn get_json(&self, json_info: &str) -> String {
-        let json_info = CString::new(json_info).unwrap();
-        unsafe {
-            let rdkit_json_cchar = get_json(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
-            let mol_json_str = CStr::from_ptr(rdkit_json_cchar)
-                .to_string_lossy()
-                .into_owned();
-            free_ptr(rdkit_json_cchar);
-            mol_json_str
-        }
-    }
+    
 
-    /// Gets a representation as a JSON Molecule object
-    pub fn get_JsonMolecule(&self) -> JsonMolecule {
-        let json_repr = self.get_json("");
-        JsonMolecule::JsonMolFromJson(&json_repr)
-    }
-
+    /// creates 3D coordinates
     pub fn set_3d_coords(&mut self, json_info: &str) {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
@@ -367,6 +414,19 @@ impl Molecule {
         }
     }
 
+    /// Gets a v3000 MDL molblock content as a string.
+    pub fn get_v3kmolblock(&self, json_info: &str) -> String {
+        let json_info = CString::new(json_info).unwrap();
+        unsafe {
+            let mblock_cchar: *mut c_char =
+            get_v3kmolblock(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
+            let res = CStr::from_ptr(mblock_cchar).to_string_lossy().into_owned();
+            free_ptr(mblock_cchar);
+            res
+        }
+    }
+    
+    /// get descriptors as hashmap 
     pub fn get_descriptors(&self) -> HashMap<String, f32> {
         let desc_string = self.get_descriptors_as_string();
         let desc_json: HashMap<String, f32> =
@@ -374,6 +434,7 @@ impl Molecule {
         desc_json
     }
 
+    /// get descriptors as string
     pub fn get_descriptors_as_string(&self) -> String {
         let desc_cchar: *mut c_char = unsafe { get_descriptors(self.pkl_mol, *self.pkl_size) };
         let desc_string: &str = unsafe { CStr::from_ptr(desc_cchar).to_str().unwrap() };
@@ -430,27 +491,27 @@ impl Molecule {
     }
 }
 
-    /// read a classical .smi file
-    pub fn read_smifile(smi_file: &str) -> Vec<Molecule> {
-        let smi_file = read_to_string(smi_file).expect("Could not load file.");
-        let mut mol_list: Vec<Molecule> = Vec::new();
-        let smiles_list: Vec<&str> = smi_file.split("\n").collect();
-        for (i, s) in smiles_list.iter().enumerate() {
-            if s.len() == 0 {
+/// read a classical .smi file
+pub fn read_smifile(smi_file: &str) -> Vec<Molecule> {
+    let smi_file = read_to_string(smi_file).expect("Could not load file.");
+    let mut mol_list: Vec<Molecule> = Vec::new();
+    let smiles_list: Vec<&str> = smi_file.split("\n").collect();
+    for (i, s) in smiles_list.iter().enumerate() {
+        if s.len() == 0 {
+            continue;
+        };
+        let s_mod = s.trim_start_matches("\n");
+        let mol: Molecule = Molecule::new(s_mod, "").unwrap();
+        unsafe {
+            if *mol.pkl_size == 0 {
+                eprintln!("Skipping position: {} - cannot create molecule. ", i);
                 continue;
-            };
-            let s_mod = s.trim_start_matches("\n");
-            let mol: Molecule = Molecule::new(s_mod, "").unwrap();
-            unsafe {
-                if *mol.pkl_size == 0 {
-                    eprintln!("Skipping position: {} - cannot create molecule. ", i);
-                    continue;
-                }
             }
-            mol_list.push(mol);
         }
-        mol_list
+        mol_list.push(mol);
     }
+    mol_list
+}
 
 /// read a classical .sdf file
 pub fn read_sdfile(sd_file: &str) -> Vec<Molecule> {
@@ -759,16 +820,36 @@ mod tests {
         let cx_input = "CO |$C2;O1$| carbon monoxide'";
         let pkl_mol2 = Molecule::new(cx_input, "").unwrap();
         let cxsmiles = pkl_mol2.get_cxsmiles("");
-        println!("cxsmiles: {:?}",cxsmiles);
+        println!("cxsmiles: {:?}", cxsmiles);
         assert_eq!(cxsmiles, "CO |$C2;O1$|");
     }
     #[test]
     fn find_substructure() {
-        let  mol = Molecule::new("Cl[C@H](F)C[C@H](F)Cl", "").unwrap();
-        let  query_mol = Molecule::get_qmol("Cl[C@@H](F)C", "").unwrap();
+        let mol = Molecule::new("Cl[C@H](F)C[C@H](F)Cl", "").unwrap();
+        let query_mol = Molecule::get_qmol("Cl[C@@H](F)C", "").unwrap();
         let res = mol.get_substruct_match(&query_mol, "");
         assert_eq!(res, "{\"atoms\":[0,1,2,3],\"bonds\":[0,1,2]}");
         let res = mol.get_substruct_matches(&query_mol, "");
-        assert_eq!(res, "[{\"atoms\":[0,1,2,3],\"bonds\":[0,1,2]},{\"atoms\":[6,4,5,3],\"bonds\":[5,4,3]}]");
+        assert_eq!(
+            res,
+            "[{\"atoms\":[0,1,2,3],\"bonds\":[0,1,2]},{\"atoms\":[6,4,5,3],\"bonds\":[5,4,3]}]"
+        );
+    }
+    #[test]
+    fn create_image() {
+        let orig_smiles = "CN=N#N";
+        let pkl_mol = Molecule::new(orig_smiles, "").unwrap();
+        let svg = pkl_mol.get_svg("{\"width\":350,\"height\":300}");
+        assert!(svg.contains("width='350px'"));
+        assert!(svg.contains("height='300px'"));
+        assert!(svg.contains("</svg>"));
+    }
+    #[test]
+    fn test_moblock() {
+        let pkl_mol = Molecule::new("CN=N#N", "").unwrap();
+        let v3k_molblock = pkl_mol.get_v3kmolblock("");
+        let res = Molecule::new(&v3k_molblock,"");
+        assert!(res.is_some());
+
     }
 }

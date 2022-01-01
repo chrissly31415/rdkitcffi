@@ -98,92 +98,7 @@ use std::io::Cursor;
             println!("{}", df2);
         }
 
-        #[test]
-        fn raw_examples() {
-            unsafe {
-                println!(
-                    "RDKit-rust interface dev - RDKit version {:?}",
-                    CStr::from_ptr(version())
-                );
-                enable_logging();
-
-                let smiles = CString::new("COCC=CC#C").unwrap();
-                let rdkit_json = CString::new("").unwrap();
-                let pkl_size: *mut size_t = libc::malloc(mem::size_of::<u64>()) as *mut u64;
-
-                //create an serialized rdkit mol
-                let mut pkl_mol: *mut c_char =
-                    get_mol(smiles.as_ptr(), pkl_size, rdkit_json.as_ptr());
-
-                //create an canonical string
-                let can_smiles_cchar: *mut c_char =
-                    get_smiles(pkl_mol, *pkl_size, rdkit_json.as_ptr());
-
-                let c_str: &CStr = CStr::from_ptr(can_smiles_cchar);
-                let can_smiles: &str = c_str.to_str().unwrap();
-
-                println!("Canonical SMILES: {}", can_smiles);
-
-                let mol_block_cchar = get_molblock(pkl_mol, *pkl_size, rdkit_json.as_ptr());
-                let mol_block: &CStr = CStr::from_ptr(mol_block_cchar);
-
-                println!("mol_block: {:?}", mol_block);
-
-                //get 3D structure, mol should be mutable
-                add_hs(&mut pkl_mol as *mut _, pkl_size);
-
-                //generate 3D coordinates
-                let json_info = CString::new("{\"randomSeed\":42}").unwrap();
-                set_3d_coords(&mut pkl_mol as *mut _, pkl_size, json_info.as_ptr());
-
-                let mol_block_cstr = get_molblock(pkl_mol, *pkl_size, rdkit_json.as_ptr());
-                let mol_block: &CStr = CStr::from_ptr(mol_block_cstr);
-                println!("mol_block with H: {:?}", mol_block);
-
-                //compute some descriptors
-                let desc_cchar = get_descriptors(pkl_mol, *pkl_size);
-                println!("Descriptors: {:?}", CStr::from_ptr(desc_cchar));
-
-                //get tautomer
-                remove_all_hs(&mut pkl_mol as *mut _, pkl_size);
-                canonical_tautomer(&mut pkl_mol as *mut _, pkl_size, rdkit_json.as_ptr());
-                let can_smiles_cchar: *mut c_char =
-                    get_smiles(pkl_mol, *pkl_size, rdkit_json.as_ptr());
-                println!("Canonical Tautomer: {:?}", CStr::from_ptr(can_smiles_cchar));
-
-                //get InChi string
-                let inchi_cchar = get_inchi(pkl_mol, *pkl_size, rdkit_json.as_ptr());
-                println!("InChi: {:#?}", CStr::from_ptr(inchi_cchar));
-
-                //get molecule as JSON object
-                let rdkit_json_cchar = get_json(pkl_mol, *pkl_size, rdkit_json.as_ptr());
-                let mol_json_str = CStr::from_ptr(rdkit_json_cchar).to_str().unwrap();
-
-                println!("RDKit as JSON: {}", mol_json_str);
-
-                let rdkit_mol: JsonBase =
-                    serde_json::from_str(mol_json_str).expect("Wrong JSON format!");
-                println!("defaults:{:#?} ", rdkit_mol.defaults);
-                println!("commonchem:{:#?} ", rdkit_mol.commonchem);
-
-                for k in rdkit_mol.molecules.iter() {
-                    for l in &k.atoms {
-                        println!("atom:{:?} ", l);
-                    }
-                    for l in &k.bonds {
-                        println!("bond:{:?} ", l);
-                    }
-                    for l in &k.conformers {
-                        println!("conf\n");
-                        for m in &l.coords {
-                            println!("coords:{:?} ", m);
-                        }
-                    }
-                }
-                free(pkl_size as *mut libc::c_void);
-                free_ptr(pkl_mol);
-            }
-        }
+        
         #[test]
         fn sdf2inchi() {
             unsafe {
@@ -196,6 +111,7 @@ use std::io::Cursor;
                 println!("InChi: {:#?}", CStr::from_ptr(inchi_cchar));
                 free(pkl_size as *mut libc::c_void);
                 free_ptr(pkl_mol);
+                free_ptr(inchi_cchar);
             }
         }
         #[test]
@@ -209,6 +125,7 @@ use std::io::Cursor;
                 println!("InChi: {:#?}", CStr::from_ptr(inchi_cchar));
                 free(pkl_size as *mut libc::c_void);
                 free_ptr(pkl_mol);
+                free_ptr(inchi_cchar);
             }
         }
         #[test]
@@ -239,6 +156,7 @@ use std::io::Cursor;
 
                 free(pkl_size as *mut libc::c_void);
                 free_ptr(pkl_mol);
+                free_ptr(rdkit_json_cchar);
             }
         }
     }

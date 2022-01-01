@@ -55,6 +55,9 @@ fn main() {
         .allowlist_function("get_descriptors") 
         .allowlist_function("add_hs")
         .allowlist_function("set_3d_coords") 
+        .allowlist_function("set_2d_coords") 
+        .allowlist_function("get_svg") 
+
         .allowlist_function("remove_all_hs") 
 
         .allowlist_function("get_substruct_matches") 
@@ -62,17 +65,20 @@ fn main() {
         .allowlist_function("get_cxsmiles")
         .allowlist_function("get_smarts") 
         .allowlist_function("get_qmol") 
+        .allowlist_function("get_v3kmolblock") 
 
-        get_svg
-        charge_parent
-        fragment_parent
-        prefer_coordgen
-        set_2d_coords
-        set_2d_coords_aligned
+
 
         .allowlist_function("free") 
         .allowlist_function("free_ptr") 
-        .allowlist_var("size_t")  */
+        .allowlist_var("size_t")
+        
+        charge_parent
+        fragment_parent
+        prefer_coordgen
+        set_2d_coords_aligned
+        
+        */
  
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
 
