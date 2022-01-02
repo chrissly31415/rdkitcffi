@@ -42,13 +42,15 @@ fn main() {
         .header("include/cffiwrapper.h")
         .clang_arg("-Iinclude/boost")
         .clang_arg("-Iinclude")
-/*      .allowlist_function("version")
+        .allowlist_function("version")
         .allowlist_function("enable_logging")
+        .allowlist_function("disable_logging")
         .allowlist_function("get_smiles")
         .allowlist_function("get_mol")
         .allowlist_function("get_inchikey_for_inchi")
         .allowlist_function("get_inchi")
         .allowlist_function("get_molblock") 
+        .allowlist_function("get_v3kmolblock") 
         .allowlist_function("get_json") 
         .allowlist_function("canonical_tautomer") 
         .allowlist_function("get_descriptors") 
@@ -56,29 +58,32 @@ fn main() {
         .allowlist_function("set_3d_coords") 
         .allowlist_function("set_2d_coords") 
         .allowlist_function("get_svg") 
-
         .allowlist_function("remove_all_hs") 
-
         .allowlist_function("get_substruct_matches") 
         .allowlist_function("get_substruct_match") 
         .allowlist_function("get_cxsmiles")
         .allowlist_function("get_smarts") 
         .allowlist_function("get_qmol") 
-        .allowlist_function("get_v3kmolblock") 
-
-
-
+        .allowlist_function("cleanup") 
+        .allowlist_function("neutralize") 
+        .allowlist_function("reionize") 
+        .allowlist_function("normalize") 
+        .allowlist_function("get_morgan_fp")
+        .allowlist_function("get_morgan_fp_as_bytes")
+        .allowlist_function("get_rdkit_fp")
+        .allowlist_function("get_rdkit_fp_as_bytes")
+        .allowlist_function("get_pattern_fp")
+        .allowlist_function("get_pattern_fp_as_bytes")
         .allowlist_function("free") 
         .allowlist_function("free_ptr") 
         .allowlist_var("size_t")
-        
-        charge_parent
-        fragment_parent
-        prefer_coordgen
-        set_2d_coords_aligned
-        
-        */
- 
+
+//TODO
+        .allowlist_function("charge_parent")
+        .allowlist_function("fragment_parent")
+        .allowlist_function("prefer_coordgen")
+        .allowlist_function("set_2d_coords_aligned")
+
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
 
         .generate()
