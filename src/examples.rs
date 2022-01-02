@@ -47,7 +47,7 @@ use std::io::Cursor;
 
             let vala = df.column("smiles").unwrap();
             let valb = df.column("can_tautomer").unwrap();
-            let mask = vala.neq(valb);
+            let mask = vala.not_equal(valb);
             df = df.filter(&mask).unwrap();
             println!("{}", df);
         }
@@ -71,7 +71,7 @@ use std::io::Cursor;
 
             let vala = df.column("smiles").unwrap();
             let valb = df.column("can_tautomer").unwrap();
-            let mask = vala.neq(valb);
+            let mask = vala.not_equal(valb);
             df = df.filter(&mask).unwrap();
         }
         #[test]
@@ -99,7 +99,7 @@ use std::io::Cursor;
         
             let vala = df.column("smiles").unwrap();
             let valb = df.column("can_tautomer").unwrap();
-            let mask = vala.neq(valb);
+            let mask = vala.not_equal(valb);
             df = df.filter(&mask).unwrap();
             println!("{}", df); 
         }

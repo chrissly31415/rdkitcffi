@@ -11,7 +11,7 @@
 //! [github repository](https://github.com/chrissly31415/rdkitcffi).
 //!
 //! Please have a look at the examples below and the test functions.  
-//!
+//!polars
 //! # Examples
 //!
 //! Basic usage:

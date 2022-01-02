@@ -5,7 +5,6 @@
 //https://github.com/rdkit/rdkit/blob/master/Code/MinimalLib/cffi_test.c
 
 extern crate bindgen;
-extern crate pkg_config;
 use std::path::PathBuf;
 
 //use std::env;
