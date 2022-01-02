@@ -787,7 +787,7 @@ mod tests {
                 mol.get_numbonds(),
             )
         }
-        assert_eq!(mol_list.len(), 990);
+        assert_eq!(mol_list.len(), 8);
     }
     #[test]
     fn morgan_fp() {
@@ -975,6 +975,6 @@ mod tests {
         pkl_mol.cleanup("");
         assert_eq!(pkl_mol.get_smiles(""), "[CH2-]C[N+](=O)[O-].[Pt+]");
         pkl_mol.fragment_parent("");
-        
+
     }
 }

@@ -82,8 +82,7 @@ use std::io::Cursor;
             let mut mol_list: Vec<Molecule> = crate::read_sdfile("data/test.sdf");
             println!("mol_list:{:?}", mol_list.len());
             mol_list.iter_mut().for_each(|m| m.remove_all_hs());
-            let short_list = &mut mol_list[1..30];
-            let short_list = &mut mol_list;
+            let short_list = &mut mol_list[1..7];
         
             let a: Vec<_> = short_list.iter().map(|m| m.get_smiles("")).collect();
             let b: Vec<_> = short_list
