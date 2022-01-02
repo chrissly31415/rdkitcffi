@@ -4,6 +4,9 @@ version = "0.0.1"
 links = "rdkitcffi"
 build = "build.rs"
 edition = "2018"
+exclude = [
+    "src/main.rs",
+]
 
 [dependencies]
 libc = "0.2.0"
