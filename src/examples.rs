@@ -33,7 +33,7 @@ use std::io::Cursor;
 
         use super::*;
         #[test]
-        fn polars_df1() {
+        fn polars_doc1() {
             let mut mol_list: Vec<Molecule> = crate::read_sdfile("data/test.sdf");
             mol_list.iter_mut().for_each(|m| m.remove_all_hs());
             let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
@@ -54,8 +54,7 @@ use std::io::Cursor;
         }
 
         #[test]
-        #[ignore]
-        fn polars_doc() {
+        fn polars_doc2() {
             use polars::df;
             use polars::prelude::*;
 
@@ -63,11 +62,10 @@ use std::io::Cursor;
                 enable_logging();
             }
 
-            let mut mol_list: Vec<Molecule> = crate::read_sdfile("data/large.sdf"); // ist failing....
+            let mut mol_list: Vec<Molecule> = crate::read_sdfile("data/test.sdf"); 
+
             let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
-            println!("here");
             mol_list.iter_mut().for_each(|m| m.canonical_tautomer(""));
-            println!("here2");
             let b: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
 
             let mut df = df!( "smiles" => a, "can_tautomer" => b).unwrap();
@@ -77,7 +75,35 @@ use std::io::Cursor;
             let mask = vala.neq(valb);
             df = df.filter(&mask).unwrap();
         }
+        #[test]
+        fn polars_doc3() {
+            use polars::df;
+            use polars::prelude::*;
 
+            let mut mol_list: Vec<Molecule> = crate::read_sdfile("data/test.sdf");
+            println!("mol_list:{:?}", mol_list.len());
+            mol_list.iter_mut().for_each(|m| m.remove_all_hs());
+            let short_list = &mut mol_list[1..30];
+            let short_list = &mut mol_list;
+        
+            let a: Vec<_> = short_list.iter().map(|m| m.get_smiles("")).collect();
+            let b: Vec<_> = short_list
+                .iter()
+                .map(|m| m.get_smiles("").len() as u32)
+                .collect();
+        
+            short_list.iter_mut().for_each(|m| m.canonical_tautomer(""));
+            let c: Vec<_> = short_list.iter().map(|m| m.get_smiles("")).collect();
+        
+            println!("a:{:?}, b:{:?}, c:{:?}", a.len(), b.len(), c.len());
+            let mut df = df!( "smiles" => a, "len" => b, "can_tautomer" => c).unwrap();
+        
+            let vala = df.column("smiles").unwrap();
+            let valb = df.column("can_tautomer").unwrap();
+            let mask = vala.neq(valb);
+            df = df.filter(&mask).unwrap();
+            println!("{}", df); 
+        }
         #[test]
         fn polars_df2() {
             let mol_list: Vec<Molecule> = crate::read_sdfile("data/test.sdf");
