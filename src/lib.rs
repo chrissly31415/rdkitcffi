@@ -1,14 +1,14 @@
-//! This is an experimental (and not official) rust wrapper for some functionaltiy of the great [RDKit](https://www.rdkit.org/) library.
+//! This is an experimental (and not official) rust wrapper for some functionality of the great open source cheminformatics [RDKit](https://www.rdkit.org/) library.
 //!
 //! It makes use of its new (and also still experimental) C Foreign Function Interface (CFFI), see also this [blog post](https://greglandrum.github.io/rdkit-blog/technical/2021/05/01/rdkit-cffi-part1.html).
 //!
-//! Use it at your own risk, its not recommended yet for productive use and only available for linux :-)
+//! Use it at your own risk, its not yet recommended for productive use and only available for linux :-)
 //!
 //! Please note, that only a limited functionality is being exposed via cffi by RDKit. Structured data is
-//! transferred from the backend via the cffi interface as string types.
-//! This also means that the structure of objects is significantly different from the C/C++ and python APIs.
+//! transferred from the backend via the cffi interface as string types. Addiitional arguments can be passed as json strings.  
+//! This also means that the structure of objects is different from the C/C++ and python APIs.  
 //!
-//! Check the [github repo](https://github.com/chrissly31415/rdkitcffi).
+//! [github repository](https://github.com/chrissly31415/rdkitcffi).
 //!
 //! Please have a look at the examples below and the test functions.  
 //!
