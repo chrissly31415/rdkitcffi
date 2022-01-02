@@ -46,13 +46,23 @@
 //!};
 //! ```
 //!
-//! Getting a JSON version of the molecule (via serde_json):
+//! Additional arguments can be passed via json
+//! 
+//! ```
+//! use rdkitcffi::Molecule;
+//! 
+//! let json_args = "{\"removeHs\":false,\"canonical\":false}";
+//! let pkl_mol = Molecule::new("c1cc(O[H])ccc1", json_args).unwrap();
+//! ```
+//! 
+//! 
+//! Getting a JSON represenation (via serde_json):
 //!
 //! ```
 //! use rdkitcffi::Molecule;
 //!
 //! let pkl_mol = Molecule::new("OCCO", "").unwrap();
-//! println!("json: {:?}", pkl_mol.get_JsonMolecule());
+//! println!("json: {:?}", pkl_mol.get_json(""));
 //!
 //! ```
 //!
@@ -73,7 +83,7 @@
 //! use rdkitcffi::Molecule;
 //!
 //! let pkl_mol = Molecule::new("CCCN", "").unwrap();
-//! let desc = pkl_mol.get_descriptors();
+//! let desc = pkl_mol.get_descriptors_as_dict();
 //! let nrot = desc.get("NumRotatableBonds");
 //! let logp = desc.get("CrippenClogP");
 //!
@@ -294,7 +304,7 @@ impl Molecule {
         }
     }
 
-    /// Normalize the topology of a molecule
+    /// Normalize  molecule
     pub fn normalize(&mut self, json_info: &str) {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
@@ -318,6 +328,7 @@ impl Molecule {
         }
     }
 
+    /// celanup molecule
     pub fn cleanup(&mut self, json_info: &str) {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
@@ -329,6 +340,7 @@ impl Molecule {
         }
     }
 
+    /// reionize molecule
     pub fn reionize(&mut self, json_info: &str) {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
@@ -340,6 +352,7 @@ impl Molecule {
         }
     }
 
+    /// get a the canonical tautomer
     pub fn canonical_tautomer(&mut self, json_info: &str) {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
@@ -351,6 +364,7 @@ impl Molecule {
         }
     }
 
+    /// get the inchi as a String
     pub fn get_inchi(&self, json_info: &str) -> String {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
@@ -362,6 +376,7 @@ impl Molecule {
         }
     }
 
+    /// get the inchi key
     pub fn get_inchikey(&self, json_info: &str) -> String {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
@@ -374,12 +389,14 @@ impl Molecule {
         }
     }
 
+    /// add the hydrogens
     pub fn add_hs(&mut self) {
         unsafe {
             add_hs(&mut self.pkl_mol as *mut _, self.pkl_size);
         }
     }
 
+    /// remove hydrogens
     pub fn remove_all_hs(&mut self) {
         unsafe {
             remove_all_hs(&mut self.pkl_mol as *mut _, self.pkl_size);
@@ -422,15 +439,15 @@ impl Molecule {
     }
 
     /// get descriptors as hashmap
-    pub fn get_descriptors(&self) -> HashMap<String, f32> {
-        let desc_string = self.get_descriptors_as_string();
+    pub fn get_descriptors_as_dict(&self) -> HashMap<String, f32> {
+        let desc_string = self.get_descriptors();
         let desc_json: HashMap<String, f32> =
             serde_json::from_str(&desc_string).expect("Wrong JSON format!?");
         desc_json
     }
 
     /// get descriptors as string
-    pub fn get_descriptors_as_string(&self) -> String {
+    pub fn get_descriptors(&self) -> String {
         let desc_cchar: *mut c_char = unsafe { get_descriptors(self.pkl_mol, *self.pkl_size) };
         let desc_string: &str = unsafe { CStr::from_ptr(desc_cchar).to_str().unwrap() };
         let res = desc_string.to_owned();
@@ -438,7 +455,8 @@ impl Molecule {
         res
     }
 
-    pub fn get_morgan_fp_as_string(&self, json_info: &str) -> String {
+
+    pub fn get_morgan_fp(&self, json_info: &str) -> String {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
             let fp_cchar: *mut c_char =
@@ -466,11 +484,6 @@ impl Molecule {
             free_ptr(fp_cchar);
             res
         }
-    }
-
-    pub fn get_morgan_fp(&self, json_info: &str) {
-        let json_info = CString::new(json_info).unwrap();
-        let desc_string = self.get_morgan_fp_as_string("");
     }
 
     ///Gets a query molecule from a SMARTS
@@ -649,7 +662,7 @@ mod tests {
     fn smiles2descriptors() {
         let orig_smiles = "CCCN";
         let pkl_mol = Molecule::new(orig_smiles, "").unwrap();
-        let desc = pkl_mol.get_descriptors();
+        let desc = pkl_mol.get_descriptors_as_dict();
         println!("Descriptors: {:?}", desc);
         let nheavy = desc.get("NumHeavyAtoms").unwrap().round() as i32;
         assert_eq!(nheavy, 4);
@@ -692,7 +705,7 @@ mod tests {
         let smiles = "OCC=CCO";
         let options = "{\"radius\":2,\"nBits\":64}";
         let pkl_mol = Molecule::new(smiles, "").unwrap();
-        let fps = pkl_mol.get_morgan_fp_as_string(options);
+        let fps = pkl_mol.get_morgan_fp(options);
         println!("Fingerprints: {:?}", fps);
         println!("Length: {:?}", fps.len());
         assert_eq!(
@@ -775,7 +788,6 @@ mod tests {
         println!("{:?}", json_mol);
         let bonds = json_mol.bonds;
         assert_eq!(bonds.len(), 6);
-        //println!("{:?}", mol.bonds);
     }
     #[test]
     fn json_str_from_smiles() {
@@ -852,9 +864,17 @@ mod tests {
         let molblock = "THIOL_12\n     RDKit          3D\n\n 25 25  0  0  0  0  0  0  0  0999 V2000\n   -2.2510   -2.6650   -2.0550 S   0  0  0  0  0  0  0  0  0  0  0  0\n   -3.3040   -2.7120   -2.1100 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.7910   -1.5140   -0.7240 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.1270   -2.0270    0.1920 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.4730   -0.6640   -0.8710 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.2780   -0.7500   -0.3280 C   0  0  0  0  0  0  0  0  0  0  0  0\n    0.2420   -1.8480   -0.5140 O   0  0  0  0  0  0  0  0  0  0  0  0\n    0.4860    0.3560   -0.2740 N   0  0  0  0  0  0  0  0  0  0  0  0\n    0.0540    1.2670   -0.1190 H   0  0  0  0  0  0  0  0  0  0  0  0\n    1.9050    0.2450   -0.7390 C   0  0  1  0  0  0  0  0  0  0  0  0\n    1.9190   -0.1360   -1.7740 H   0  0  0  0  0  0  0  0  0  0  0  0\n    2.4830    1.6820   -0.6980 C   0  0  0  0  0  0  0  0  0  0  0  0\n    2.4150    2.0880    0.3240 H   0  0  0  0  0  0  0  0  0  0  0  0\n    3.5420    1.6740   -0.9990 H   0  0  0  0  0  0  0  0  0  0  0  0\n    1.7270    2.5420   -1.6810 C   0  0  0  0  0  0  0  0  0  0  0  0\n    1.7070    2.3180   -2.9770 N   0  0  0  0  0  0  0  0  0  0  0  0\n    2.2060    1.5550   -3.4590 H   0  0  0  0  0  0  0  0  0  0  0  0\n    0.9600    3.1990   -3.5600 C   0  0  0  0  0  0  0  0  0  0  0  0\n    0.7540    3.2500   -4.6280 H   0  0  0  0  0  0  0  0  0  0  0  0\n    0.5040    3.9880   -2.6970 N   0  0  0  0  0  0  0  0  0  0  0  0\n    0.9760    3.6220   -1.3870 C   0  0  0  0  0  0  0  0  0  0  0  0\n    0.7740    4.0890   -0.4240 H   0  0  0  0  0  0  0  0  0  0  0  0\n    2.7730   -0.7080    0.0810 C   0  0  0  0  0  0  0  0  0  0  0  0\n    3.9440   -0.8660   -0.2210 O   0  0  0  0  0  0  0  0  0  0  0  0\n    2.2450   -1.3190    1.1390 O   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\n  1  3  1  0\n  3  4  1  0\n  3  5  1  0\n  3  6  1  0\n  6  7  2  0\n  6  8  1  0\n  8  9  1  0\n  8 10  1  0\n 10 11  1  6\n 10 12  1  0\n 10 23  1  0\n 12 13  1  0\n 12 14  1  0\n 12 15  1  0\n 15 16  1  0\n 15 21  2  0\n 16 17  1  0\n 16 18  1  0\n 18 19  1  0\n 18 20  2  0\n 20 21  1  0\n 21 22  1  0\n 23 24  2  0\n 23 25  1  0\nM  CHG  1  25  -1\nM  END\n";
         let mut pkl_mol = Molecule::new(molblock, "").unwrap();
         println!("1: {:?}",pkl_mol);
-        pkl_mol.cleanup(""); // this avoids exception...
+        pkl_mol.cleanup(""); // this is needed to avoid exception...
         //pkl_mol2.remove_all_hs();
         println!("2: {:?}",pkl_mol);
         pkl_mol.canonical_tautomer("");
+        assert_eq!(pkl_mol.get_smiles(""),"O=C(CS)NC(Cc1c[nH]cn1)C(=O)[O-]");
+    }
+    #[test]
+    fn json_details() {
+        let json_args = "{\"removeHs\":false,\"canonical\":false}";
+        let pkl_mol = Molecule::new("c1cc(O[H])ccc1", json_args).unwrap();
+        println!("{:?}",pkl_mol);
+        assert_eq!(pkl_mol.get_smiles(""),"[H]Oc1ccccc1");
     }
 }

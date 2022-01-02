@@ -4,7 +4,6 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-
 use libc;
 
 use std::mem;
@@ -110,7 +109,7 @@ use std::io::Cursor;
             // we are using json to deal with dimension
             let basic_json = mol_list
                 .iter()
-                .map(|m| m.get_descriptors_as_string())
+                .map(|m| m.get_descriptors())
                 .collect::<Vec<String>>()
                 .iter()
                 .map(|s| format!("{}\n", s))
@@ -122,9 +121,7 @@ use std::io::Cursor;
                 .finish()
                 .unwrap();
             println!("{}", df2);
-        }
-
-        
+        } 
         #[test]
         fn sdf2inchi() {
             unsafe {
