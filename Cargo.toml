@@ -9,7 +9,6 @@ exclude = [
     "src/main.rs",
 ]
 repository = "https://github.com/chrissly31415/rdkitcffi"
-license = "MIT"
 license-file = "LICENSE"
 keywords = ["RDKit", "cheminformatics","chemistry"]
 
@@ -20,6 +19,6 @@ serde_json = "1"
 polars =  { version = "^0.18", features = ["json"]}
 
 [build-dependencies]
-cc = { version = "^1.0", features = ["parallel"] }
+cc = { version = "^1.0"}
 bindgen = "^0.58"
 

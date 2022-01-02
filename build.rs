@@ -24,10 +24,10 @@ fn main() {
     //#env::set_var(key, shared_lib_dir);
 
     //this sets the dynamic lib path only during build
-    println!("cargo:rustc-link-search={}", shared_lib_dir);
-
+    //println!("cargo:rustc-link-search={}", shared_lib_dir);
+    println!("cargo:rustc-link-search=native={}", shared_lib_dir);
     println!("cargo:rustc-link-lib=dylib=rdkitcffi");
-
+    
     println!("cargo:rerun-if-changed=wrapper.h");
 
     //use this for dynamic lib path cargo test & run
