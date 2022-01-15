@@ -96,18 +96,26 @@ Currently, only linux is supported, however support for macos should also be via
 
 ## Installation
 
-In some cases you will have also to install some additional packages for installation:  
+Currently only linux is supported.   
+In some cases you may have also to install some additional packages for installation:
 
 ```
 sudo apt-get install build-essential
 sudo apt-get install libclang-dev
 ```
 
+Download the repo:  
+
+```
+git clone https://github.com/chrissly31415/rdkitcffi.git  
+```
+
 If you have a rust/cargo installation, just run
 
 ```
+cd rdkitcffu
 cargo build  
-cargo test  
+cargo test --lib  
 ```
 
 After installation update your LD_LIBRARY_PATH in order to run binaries without cargo, e.g.:   
