@@ -113,7 +113,7 @@ git clone https://github.com/chrissly31415/rdkitcffi.git
 If you have a rust/cargo installation, just run
 
 ```
-cd rdkitcffu
+cd rdkitcffi
 cargo build  
 cargo test --lib  
 ```
