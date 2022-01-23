@@ -22,15 +22,15 @@
 //! let smiles = "OCCC#CO";
 //! let pkl_mol = Molecule::new(smiles, "").unwrap();
 //!
-//! let desc = pkl_mol.get_descriptors();
+//! let natoms = pkl_mol.get_numatoms();
 //! ```
 //!
 //! Working with SD files and filter None values:
 //!
 //! ```
-//!use rdkitcffi::Molecule;
+//!use rdkitcffi::{Molecule,read_sdfile};
 //! 
-//! let mut mol_opt_list : Vec<Option<Molecule>>= rdkitcffi::read_sdfile("data/test.sdf");
+//! let mut mol_opt_list : Vec<Option<Molecule>>= read_sdfile("data/test.sdf");
 //! let mut mol_list: Vec<Molecule> = mol_opt_list.into_iter().filter_map(|m| m).collect();
 //! mol_list.iter_mut().for_each(|m| m.remove_all_hs());
 //!

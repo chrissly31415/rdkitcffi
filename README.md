@@ -27,14 +27,14 @@ Currently, only linux is supported, however support for macos should also be via
  let desc = pkl_mol.get_descriptors();
  ```
 
- Working with SD files:
+Working with SD files and filter None values:
+```
+use rdkitcffi::Molecule;
 
- ```
-
- let mut mol_list : Vec<rdkitcffi::Molecule> = rdkitcffi::read_sdfile("data/test.sdf");
- mol_list.iter_mut().for_each(|m| m.remove_all_hs());
-
- ```
+let mut mol_opt_list : Vec<Option<Molecule>>= rdkitcffi::read_sdfile("data/test.sdf");
+let mut mol_list: Vec<Molecule> = mol_opt_list.into_iter().filter_map(|m| m).collect();
+mol_list.iter_mut().for_each(|m| m.remove_all_hs());
+```
 
  Dealing with invalid molecules / error handling
  
@@ -81,18 +81,18 @@ Currently, only linux is supported, however support for macos should also be via
 
  ```
 
- Creating a polars dataframe:
+Creating a polars dataframe:
 
- ```
- use rdkitcffi::Molecule;
- use polars::prelude::*;
- use polars::df;
+```
+use rdkitcffi::Molecule;
+use polars::prelude::*;
+use polars::df;
 
- let mut mol_list : Vec<Molecule> = rdkitcffi::read_smifile("data/test.smi");
- let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
- let df = df!( "smiles" => a).unwrap();
+let mut mol_list : Vec<Molecule> = rdkitcffi::read_smifile_unwrap("data/test.smi");
+let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
+let df = df!( "smiles" => a).unwrap();
 
- ```
+```
 
 ## Installation
 
