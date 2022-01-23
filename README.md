@@ -106,8 +106,8 @@ use rdkitcffi::{Molecule,read_sdfile};
 
  ```
 
-Installati
-rently only linux is supported.   
+## Installation
+Currently only linux is supported.   
 In some cases you may have also to install some additional packages for installation:
 
 ```
