@@ -1,4 +1,4 @@
-//! Some more involved examples for using the cffi interface functions
+//! Some more involved examples for using polars and the low level cffi interface functions
 //!
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
@@ -32,7 +32,7 @@ use std::io::Cursor;
 
         use super::*;
         #[test]
-        fn polars_doc1() {
+        fn polars1() {
             let mut mol_opt_list: Vec<Option<Molecule>> = crate::read_sdfile("data/test.sdf");
             let mut mol_list: Vec<Molecule> = mol_opt_list.into_iter().filter_map(|m| m).collect();
             mol_list.iter_mut().for_each(|m| m.remove_all_hs());
@@ -54,13 +54,12 @@ use std::io::Cursor;
         }
 
         #[test]
-        fn polars_doc2() {
+        fn polars2() {
             use polars::df;
             use polars::prelude::*;
-
-            //unsafe {
-            //    enable_logging();
-            //}
+            unsafe {
+                enable_logging();
+            }
             let mut mol_list: Vec<Molecule> = crate::read_sdfile_unwrap("data/test.sdf");
             let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
             mol_list.iter_mut().for_each(|m| m.canonical_tautomer(""));
@@ -74,34 +73,7 @@ use std::io::Cursor;
             df = df.filter(&mask).unwrap();
         }
         #[test]
-        fn polars_doc3() {
-            use polars::df;
-            use polars::prelude::*;
-            let mut mol_list: Vec<Molecule> = crate::read_sdfile_unwrap("data/test.sdf");
-            println!("mol_list:{:?}", mol_list.len());
-            mol_list.iter_mut().for_each(|m| m.remove_all_hs());
-            let short_list = &mut mol_list[1..7];
-        
-            let a: Vec<_> = short_list.iter().map(|m| m.get_smiles("")).collect();
-            let b: Vec<_> = short_list
-                .iter()
-                .map(|m| m.get_smiles("").len() as u32)
-                .collect();
-        
-            short_list.iter_mut().for_each(|m| m.canonical_tautomer(""));
-            let c: Vec<_> = short_list.iter().map(|m| m.get_smiles("")).collect();
-        
-            println!("a:{:?}, b:{:?}, c:{:?}", a.len(), b.len(), c.len());
-            let mut df = df!( "smiles" => a, "len" => b, "can_tautomer" => c).unwrap();
-        
-            let vala = df.column("smiles").unwrap();
-            let valb = df.column("can_tautomer").unwrap();
-            let mask = vala.not_equal(valb);
-            df = df.filter(&mask).unwrap();
-            println!("{}", df); 
-        }
-        #[test]
-        fn polars_df2() {
+        fn polars3() {
             let mol_list: Vec<Molecule> = crate::read_sdfile_unwrap("data/test.sdf");
             // we are using json to deal with dimension
             let basic_json = mol_list
