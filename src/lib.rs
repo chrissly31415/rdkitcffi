@@ -11,7 +11,7 @@
 //! [github repository](https://github.com/chrissly31415/rdkitcffi).
 //!
 //! Please have a look at the examples below and the test functions.  
-//!polars
+//!
 //! # Examples
 //!
 //! Basic usage:
@@ -20,12 +20,21 @@
 //! use rdkitcffi::Molecule;
 //!
 //! let smiles = "OCCC#CO";
-//! let pkl_mol = Molecule::new(smiles, "").unwrap();
+//! let mol = Molecule::new(smiles, "").unwrap();
 //!
-//! let natoms = pkl_mol.get_numatoms();
+//! let natoms = mol.get_numatoms();
+//! ```
+//! 
+//! Additional arguments can be passed via json
+//!
+//! ```
+//! use rdkitcffi::Molecule;
+//!
+//! let json_args = "{\"removeHs\":false,\"canonical\":false}";
+//! let mol = Molecule::new("c1cc(O[H])ccc1", json_args).unwrap();
 //! ```
 //!
-//! Working with SD files and filter None values:
+//! Working with SD files and filtering invalid molecules (=None):
 //!
 //! ```
 //!use rdkitcffi::{Molecule,read_sdfile};
@@ -36,7 +45,7 @@
 //!
 //! ```
 //!
-//! Dealing with invalid/None molecules
+//! Dealing with invalid molecules (=None)
 //!
 //! ```
 //! use rdkitcffi::Molecule;
@@ -48,23 +57,14 @@
 //!};
 //! ```
 //!
-//! Additional arguments can be passed via json
-//!
-//! ```
-//! use rdkitcffi::Molecule;
-//!
-//! let json_args = "{\"removeHs\":false,\"canonical\":false}";
-//! let pkl_mol = Molecule::new("c1cc(O[H])ccc1", json_args).unwrap();
-//! ```
-//!
 //!
 //! Getting a JSON represenation (via serde_json):
 //!
 //! ```
 //! use rdkitcffi::Molecule;
 //!
-//! let pkl_mol = Molecule::new("OCCO", "").unwrap();
-//! println!("json: {:?}", pkl_mol.get_json(""));
+//! let mol = Molecule::new("OCCO", "").unwrap();
+//! println!("json: {:?}", mol.get_json(""));
 //!
 //! ```
 //!
@@ -73,9 +73,9 @@
 //! ```
 //! use rdkitcffi::Molecule;
 //!
-//! let mut pkl_mol = Molecule::new("C(C(=O)[O-])[NH3+]", "").unwrap();
-//! pkl_mol.neutralize("");
-//! println!("{:?}", pkl_mol.get_smiles(""));
+//! let mut mol = Molecule::new("C(C(=O)[O-])[NH3+]", "").unwrap();
+//! mol.neutralize("");
+//! println!("{:?}", mol.get_smiles(""));
 //!
 //! ```
 //!
@@ -84,8 +84,8 @@
 //! ```
 //! use rdkitcffi::Molecule;
 //!
-//! let pkl_mol = Molecule::new("CCCN", "").unwrap();
-//! let desc = pkl_mol.get_descriptors_as_dict();
+//! let mol = Molecule::new("CCCN", "").unwrap();
+//! let desc = mol.get_descriptors_as_dict();
 //! let nrot = desc.get("NumRotatableBonds");
 //! let logp = desc.get("CrippenClogP");
 //!

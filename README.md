@@ -1,6 +1,6 @@
 # rdkitcffi
 
-This is an &#128679; experimental  &#128679; rust wrapper for some functionality of the wonderful [RDKit](https://www.rdkit.org/) library.
+This is an &#128679; experimental  &#128679; rust wrapper for some functionality of the great [RDKit](https://www.rdkit.org/) cheminformatics library.
 
 It makes use of its new C Foreign Function Interface (CFFI), see also this [blog post](https://greglandrum.github.io/rdkit-blog/technical/2021/05/01/rdkit-cffi-part1.html).
  
@@ -22,39 +22,51 @@ Currently, only linux is supported, however support for macos should also be via
  use rdkitcffi::Molecule;
 
  let smiles = "OCCC#CO";
- let pkl_mol = Molecule::new(smiles, "").unwrap();
- 
- let desc = pkl_mol.get_descriptors();
+ let mol = Molecule::new(smiles, "").unwrap();
+
+ let natoms = mol.get_numatoms();
  ```
-
-Working with SD files and filter None values:
-```
-use rdkitcffi::Molecule;
-
-let mut mol_opt_list : Vec<Option<Molecule>>= rdkitcffi::read_sdfile("data/test.sdf");
-let mut mol_list: Vec<Molecule> = mol_opt_list.into_iter().filter_map(|m| m).collect();
-mol_list.iter_mut().for_each(|m| m.remove_all_hs());
-```
-
- Dealing with invalid molecules / error handling
  
+ Additional arguments can be passed via json
+
  ```
  use rdkitcffi::Molecule;
+
+ let json_args = "{\"removeHs\":false,\"canonical\":false}";
+ let mol = Molecule::new("c1cc(O[H])ccc1", json_args).unwrap();
+ ```
+
+ Working with SD files and filtering invalid molecules:
+
+ ```
+use rdkitcffi::{Molecule,read_sdfile};
  
+ let mut mol_opt_list : Vec<Option<Molecule>>= read_sdfile("data/test.sdf");
+ let mut mol_list: Vec<Molecule> = mol_opt_list.into_iter().filter_map(|m| m).collect();
+ mol_list.iter_mut().for_each(|m| m.remove_all_hs());
+
+ ```
+
+ Dealing with invalid molecules
+
+ ```
+ use rdkitcffi::Molecule;
+
  let result = Molecule::new("OCCO", "");
  match result {
     Some(m) => println!("Result: {:?}", m),
     None => println!("Could not get molecule!"),
 };
  ```
- 
- Getting a JSON version of the molecule (via serde_json):
+
+
+ Getting a JSON represenation (via serde_json):
 
  ```
  use rdkitcffi::Molecule;
 
- let pkl_mol = Molecule::new("OCCO", "").unwrap();
- println!("json: {:?}", pkl_mol.get_JsonMolecule());
+ let mol = Molecule::new("OCCO", "").unwrap();
+ println!("json: {:?}", mol.get_json(""));
 
  ```
 
@@ -63,9 +75,9 @@ mol_list.iter_mut().for_each(|m| m.remove_all_hs());
  ```
  use rdkitcffi::Molecule;
 
- let mut pkl_mol = Molecule::new("C(C(=O)[O-])[NH3+]", "").unwrap();
- pkl_mol.neutralize("");
- println!("{:?}", pkl_mol.get_smiles(""));
+ let mut mol = Molecule::new("C(C(=O)[O-])[NH3+]", "").unwrap();
+ mol.neutralize("");
+ println!("{:?}", mol.get_smiles(""));
 
  ```
 
@@ -74,29 +86,28 @@ mol_list.iter_mut().for_each(|m| m.remove_all_hs());
  ```
  use rdkitcffi::Molecule;
 
- let pkl_mol = Molecule::new("CCCN", "").unwrap();
- let desc = pkl_mol.get_descriptors();
+ let mol = Molecule::new("CCCN", "").unwrap();
+ let desc = mol.get_descriptors_as_dict();
  let nrot = desc.get("NumRotatableBonds");
  let logp = desc.get("CrippenClogP");
 
  ```
 
-Creating a polars dataframe:
+ Creating a polars dataframe:
 
-```
-use rdkitcffi::Molecule;
-use polars::prelude::*;
-use polars::df;
+ ```
+ use rdkitcffi::Molecule;
+ use polars::prelude::*;
+ use polars::df;
 
-let mut mol_list : Vec<Molecule> = rdkitcffi::read_smifile_unwrap("data/test.smi");
-let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
-let df = df!( "smiles" => a).unwrap();
+ let mut mol_list : Vec<Molecule> = rdkitcffi::read_smifile_unwrap("data/test.smi");
+ let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
+ let df = df!( "smiles" => a).unwrap();
 
-```
+ ```
 
-## Installation
-
-Currently only linux is supported.   
+Installati
+rently only linux is supported.   
 In some cases you may have also to install some additional packages for installation:
 
 ```
