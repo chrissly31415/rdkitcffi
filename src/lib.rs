@@ -25,11 +25,13 @@
 //! let desc = pkl_mol.get_descriptors();
 //! ```
 //!
-//! Working with SD files:
+//! Working with SD files and filter None values:
 //!
 //! ```
-//!
-//! let mut mol_list : Vec<rdkitcffi::Molecule> = rdkitcffi::read_sdfile("data/test.sdf");
+//!use rdkitcffi::Molecule;
+//! 
+//! let mut mol_opt_list : Vec<Option<Molecule>>= rdkitcffi::read_sdfile("data/test.sdf");
+//! let mut mol_list: Vec<Molecule> = mol_opt_list.into_iter().filter_map(|m| m).collect();
 //! mol_list.iter_mut().for_each(|m| m.remove_all_hs());
 //!
 //! ```
@@ -96,7 +98,7 @@
 //! use polars::prelude::*;
 //! use polars::df;
 //!
-//! let mut mol_list : Vec<Molecule> = rdkitcffi::read_smifile("data/test.smi");
+//! let mut mol_list : Vec<Molecule> = rdkitcffi::read_smifile_unwrap("data/test.smi");
 //! let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
 //! let df = df!( "smiles" => a).unwrap();
 //!
@@ -162,8 +164,10 @@ impl Molecule {
         let json_info = CString::new(json_info).unwrap();
         let pkl_size: *mut size_t = unsafe { libc::malloc(mem::size_of::<u64>()) as *mut u64 };
         let pkl_mol = unsafe { get_mol(input_cstr.as_ptr(), pkl_size, json_info.as_ptr()) };
-        if pkl_mol.is_null() {
-            return None;
+        unsafe {
+            if pkl_mol.is_null() || *pkl_size == 0 {
+                return None;
+            }
         }
         Some(Molecule { pkl_size, pkl_mol })
     }
@@ -589,47 +593,57 @@ impl Molecule {
 }
 
 /// read a classical .smi file
-pub fn read_smifile(smi_file: &str) -> Vec<Molecule> {
+pub fn read_smifile(smi_file: &str) -> Vec<Option<Molecule>> {
     let smi_file = read_to_string(smi_file).expect("Could not load file.");
-    let mut mol_list: Vec<Molecule> = Vec::new();
+    let mut mol_list: Vec<Option<Molecule>> = Vec::new();
     let smiles_list: Vec<&str> = smi_file.split("\n").collect();
     for (i, s) in smiles_list.iter().enumerate() {
-        if s.len() == 0 {
+        let s_mod = s.trim();
+        if s_mod.len() == 0 {
+            mol_list.push(None);
             continue;
         };
-        let s_mod = s.trim_start_matches("\n");
-        let mol: Molecule = Molecule::new(s_mod, "").unwrap();
-        unsafe {
-            if *mol.pkl_size == 0 {
-                eprintln!("Skipping position: {} - cannot create molecule. ", i);
-                continue;
-            }
-        }
-        mol_list.push(mol);
+        let mol_opt =  Molecule::new(s_mod, "");
+        mol_list.push(mol_opt);
     }
     mol_list
 }
 
+/// read a classical .smi file, filter molecules which are none
+pub fn read_smifile_unwrap(smi_file: &str) -> Vec<Molecule> {
+    let mut mol_opt_list: Vec<Option<Molecule>> = crate::read_smifile(smi_file);
+    let mol_list: Vec<Molecule> = mol_opt_list.into_iter().filter_map(|m| m).collect();
+    mol_list
+}
+
 /// read a classical .sdf file
-pub fn read_sdfile(sd_file: &str) -> Vec<Molecule> {
+pub fn read_sdfile(sd_file: &str) -> Vec<Option<Molecule>> {
     let sd_file = read_to_string(sd_file).expect("Could not load file.");
-    let mut mol_list: Vec<Molecule> = Vec::new();
+    let mut mol_list: Vec<Option<Molecule>> = Vec::new();
     let molblock_list: Vec<&str> = sd_file.split("$$$$").collect();
     for (i, s) in molblock_list.iter().enumerate() {
-        let s_mod = s.trim_start_matches("\n");
-        if s.len() <= 1 {
+        let s_mod = s.trim();
+        if s_mod.len() == 0 {
+            mol_list.push(None);
             continue;
         };
-        let mut mol: Molecule = Molecule::new(s_mod, "").unwrap();
-        mol.cleanup(""); // this avoids hard to catch exceptions later on...
-        unsafe {
-            if *mol.pkl_size == 0 {
-                eprintln!("Skipping position: {} - cannot create molecule. ", i);
-                continue;
-            }
-        }
-        mol_list.push(mol);
+        let mut mol_opt = Molecule::new(s_mod, "");
+        
+        // this avoids hard to catch exceptions later on...
+        //match mol_opt.as_mut() {
+        //    Some(mut mol_opt) => {mol_opt.cleanup(""); Some(mol_opt)},
+        //    None => None,
+        //};  
+        mol_list.push(mol_opt);
     }
+    mol_list
+}
+
+
+/// read a classical .sdf file, filter molecules which are none
+pub fn read_sdfile_unwrap(sd_file: &str) -> Vec<Molecule> {
+    let mut mol_opt_list: Vec<Option<Molecule>> = crate::read_sdfile(sd_file);
+    let mol_list: Vec<Molecule> = mol_opt_list.into_iter().filter_map(|m| m).collect();
     mol_list
 }
 
@@ -761,7 +775,7 @@ mod tests {
 
     #[test]
     fn smifile2molecules() {
-        let mut mol_list: Vec<Molecule> = read_smifile("data/ringtest.smi");
+        let mut mol_list: Vec<Molecule> = read_smifile_unwrap("data/ringtest.smi");
         for (i, mol) in mol_list.iter_mut().enumerate() {
             mol.remove_all_hs();
             println!(
@@ -775,9 +789,34 @@ mod tests {
     }
     #[test]
     fn sdfile2molecules() {
-        let mut mol_list: Vec<Molecule> = read_sdfile("data/test.sdf");
+        let mut mol_list: Vec<Option<Molecule>> = read_sdfile("data/test.sdf");
+        println!("mols: {}", mol_list.len());
+        for (i, mol_opt) in mol_list.iter_mut().enumerate() {
+            let  mol = mol_opt.as_mut().unwrap_or(continue);
+            mol.remove_all_hs();
+            println!(
+                "Pos:{} INCHIKEY: {} SMILES: {} NUMATOMS: {} NUMBONDS: {}",
+                i,
+                mol.get_inchikey(""),
+                mol.get_smiles(""),
+                mol.get_numatoms(),
+                mol.get_numbonds(),
+            );
+        }
+        assert_eq!(mol_list.len(), 9);
+    }
+    #[test]
+    fn sdfile2molecules_win() {
+        //tests windows newlines
+        let mut mol_list: Vec<Molecule> = read_sdfile_unwrap("data/test_win.sdf");
         for (i, mol) in mol_list.iter_mut().enumerate() {
             mol.remove_all_hs();
+            println!(
+                "Pos:{} INCHIKEY: {} SMILES: {} ",
+                i,
+                mol.get_inchikey(""),
+                mol.get_smiles(""),
+            );
             println!(
                 "Pos:{} INCHIKEY: {} SMILES: {} NUMATOMS: {} NUMBONDS: {}",
                 i,
@@ -787,7 +826,7 @@ mod tests {
                 mol.get_numbonds(),
             )
         }
-        assert_eq!(mol_list.len(), 8);
+        assert_eq!(mol_list.len(), 19);
     }
     #[test]
     fn morgan_fp() {
@@ -975,6 +1014,5 @@ mod tests {
         pkl_mol.cleanup("");
         assert_eq!(pkl_mol.get_smiles(""), "[CH2-]C[N+](=O)[O-].[Pt+]");
         pkl_mol.fragment_parent("");
-
     }
 }

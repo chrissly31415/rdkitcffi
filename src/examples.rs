@@ -33,7 +33,8 @@ use std::io::Cursor;
         use super::*;
         #[test]
         fn polars_doc1() {
-            let mut mol_list: Vec<Molecule> = crate::read_sdfile("data/test.sdf");
+            let mut mol_opt_list: Vec<Option<Molecule>> = crate::read_sdfile("data/test.sdf");
+            let mut mol_list: Vec<Molecule> = mol_opt_list.into_iter().filter_map(|m| m).collect();
             mol_list.iter_mut().for_each(|m| m.remove_all_hs());
             let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
             let b: Vec<_> = mol_list
@@ -57,12 +58,10 @@ use std::io::Cursor;
             use polars::df;
             use polars::prelude::*;
 
-            unsafe {
-                enable_logging();
-            }
-
-            let mut mol_list: Vec<Molecule> = crate::read_sdfile("data/test.sdf"); 
-
+            //unsafe {
+            //    enable_logging();
+            //}
+            let mut mol_list: Vec<Molecule> = crate::read_sdfile_unwrap("data/test.sdf");
             let a: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
             mol_list.iter_mut().for_each(|m| m.canonical_tautomer(""));
             let b: Vec<_> = mol_list.iter().map(|m| m.get_smiles("")).collect();
@@ -78,8 +77,7 @@ use std::io::Cursor;
         fn polars_doc3() {
             use polars::df;
             use polars::prelude::*;
-
-            let mut mol_list: Vec<Molecule> = crate::read_sdfile("data/test.sdf");
+            let mut mol_list: Vec<Molecule> = crate::read_sdfile_unwrap("data/test.sdf");
             println!("mol_list:{:?}", mol_list.len());
             mol_list.iter_mut().for_each(|m| m.remove_all_hs());
             let short_list = &mut mol_list[1..7];
@@ -104,7 +102,7 @@ use std::io::Cursor;
         }
         #[test]
         fn polars_df2() {
-            let mol_list: Vec<Molecule> = crate::read_sdfile("data/test.sdf");
+            let mol_list: Vec<Molecule> = crate::read_sdfile_unwrap("data/test.sdf");
             // we are using json to deal with dimension
             let basic_json = mol_list
                 .iter()
