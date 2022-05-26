@@ -10,7 +10,7 @@ Please note, that only a limited functionality is being exposed via cffi by RDKi
 Have a look at the examples below and the test functions.  
 
 There are still some dependencies to specific version of boost and rdkit (some headers & the shared lib), that imply some manual work, see also the installation section.  
-Currently those deps are added directly to the repository for the sake of simplicity, of course this should be done in a better and more dynamic way.  
+Currently those deps are downloaded during build from [azure](https://github.com/greglandrum/rdkit-minimallib-build). This should be done in a better and more dynamic way.  
 
 Currently, only linux is supported, however support for macos should also be viable. 
 
@@ -129,9 +129,19 @@ cargo build
 cargo test --lib  
 ```
 
-After installation update your LD_LIBRARY_PATH in order to run binaries without cargo, e.g.:   
+After installation you may want to update your LD_LIBRARY_PATH in order to run binaries without cargo, e.g.:   
 
 export LD_LIBRARY_PATH=/home/username/rdkitcffi/lib/rdkitcffi_linux/linux-64/:$LD_LIBRARY_PATH  
+
+## Using it in your project
+
+Modify your Cargo.toml file:   
+
+```
+[dependencies]
+rdkitcffi = {path="/pathtorepo/rdkitcffi"} 
+```
+
 
 
 
