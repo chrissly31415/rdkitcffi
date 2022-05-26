@@ -16,7 +16,7 @@ use std::path::PathBuf;
 //do not use lib and main both, as -l gets only used for library
 
 //one need to set LD_LIBRARY_PATH manually if binary is called without cargo
-//e.g. export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/loschen/calc/rust_cheminf/rdkitcffi/lib/rdkitcffi_linux/linux-64
+//e.g. export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/username/calc/rdkitcffi/lib/rdkitcffi_linux/linux-64
 
 fn main() {
     let shared_lib_dir = "./lib/rdkitcffi_linux/linux-64/";

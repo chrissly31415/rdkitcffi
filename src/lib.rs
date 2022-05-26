@@ -109,6 +109,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::value::Value;
 use std::collections::HashMap;
 
+use std::slice::Iter;
 use std::ffi::{CStr, CString};
 use std::fmt::Debug;
 use std::fs::read_to_string;
@@ -647,6 +648,36 @@ pub fn read_sdfile_unwrap(sd_file: &str) -> Vec<Molecule> {
     mol_list
 }
 
+
+pub struct SDIterator {
+    molblock_iterator: std::vec::IntoIter<String>,
+}
+
+impl SDIterator {
+    pub fn new(pathname: &str) -> Self {
+        let sd_file = read_to_string(pathname).expect("Could not load file.");
+        let molblock_list: Vec<String> = sd_file.split("$$$$").map(|x| x.to_string()).collect();
+        let molblock_iterator = molblock_list.into_iter();
+        SDIterator {molblock_iterator}
+    }
+}
+
+impl Iterator for SDIterator {
+    type Item = Option<Molecule>;
+    fn next(&mut self) -> Option<Self::Item> {
+        let molblock = self.molblock_iterator.next();
+        let s_mod = match molblock {
+            Some(molblock) => { molblock.trim().to_string()},
+            None => {return None},
+        };
+        if s_mod.len() == 0 {
+            self.next(); //last line  
+        };
+        let mut mol_opt = Molecule::new(&s_mod, "");
+        Some(mol_opt)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JsonBase {
     pub commonchem: HashMap<String, i32>,
@@ -787,6 +818,17 @@ mod tests {
         }
         assert_eq!(mol_list.len(), 11);
     }
+
+/*     #[test]
+    fn sditerator() {
+        let sdreader = SDIterator::new("data/test.sdf");
+        for mol_opt in sdreader {
+            println!("natoms: {}",mol_opt.unwrap().get_numatoms());
+        }
+
+    } */
+
+
     #[test]
     fn sdfile2molecules() {
         let mut mol_list: Vec<Option<Molecule>> = read_sdfile("data/test.sdf");
@@ -981,7 +1023,7 @@ mod tests {
         assert!(svg.contains("</svg>"));
     }
     #[test]
-    fn test_moblock() {
+    fn test_molblock() {
         let pkl_mol = Molecule::new("CN=N#N", "").unwrap();
         let v3k_molblock = pkl_mol.get_v3kmolblock("");
         let res = Molecule::new(&v3k_molblock, "");
