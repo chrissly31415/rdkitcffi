@@ -9,10 +9,13 @@ Use it at your own risk, its not recommended yet for productive use :-)
 Please note, that only a limited functionality is being exposed via cffi by RDKit and not all of this is available yet via this interface.  
 Have a look at the examples below and the test functions.  
 
-There are still some dependencies to specific version of boost and rdkit (some headers & the shared lib), that imply some manual work, see also the installation section.  
-Currently those deps are downloaded during build from [azure](https://github.com/greglandrum/rdkit-minimallib-build). This should be done in a better and more dynamic way.  
+There are dependencies to specific version of boost and rdkit (some headers & the shared lib), see also the installation section.  
+The rdkitcffi.so shared library is downloaded during build from [azure](https://github.com/greglandrum/rdkit-minimallib-build). This could be done in a better and more dynamic way.
 
-Currently, only linux is supported, however support for macos should also be viable. 
+Currently, only linux is supported, however support for macos should also be viable.  
+
+Please note, that there is also a cargo crate providing [low level wrapper](https://crates.io/crates/rdkit-sys) to rdkit, i.e. not using the cffi interface. 
+
 
  ## Examples
 
