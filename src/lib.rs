@@ -124,7 +124,7 @@ use bindings::{add_hs, enable_logging, remove_all_hs, set_3d_coords};
 use bindings::{
     canonical_tautomer, charge_parent, cleanup, fragment_parent, neutralize, normalize, reionize,
 };
-use bindings::{free, free_ptr, size_t};
+use bindings::{free, free_ptr};
 use bindings::{
     get_cxsmiles, get_descriptors, get_inchi, get_inchikey_for_inchi, get_json, get_mol,
     get_molblock, get_qmol, get_smarts, get_smiles, get_substruct_match, get_substruct_matches,
@@ -138,7 +138,7 @@ use bindings::{
 /// Basic class, implementing most functionality as member functions of a molecule object
 
 pub struct Molecule {
-    pkl_size: *mut size_t,
+    pkl_size: *mut usize,
     pkl_mol: *mut i8,
 }
 
@@ -163,7 +163,7 @@ impl Molecule {
     pub fn new(input: &str, json_info: &str) -> Option<Molecule> {
         let input_cstr = CString::new(input).unwrap();
         let json_info = CString::new(json_info).unwrap();
-        let pkl_size: *mut size_t = unsafe { libc::malloc(mem::size_of::<u64>()) as *mut u64 };
+        let pkl_size: *mut usize = unsafe { libc::malloc(mem::size_of::<u64>()) as *mut usize };
         let pkl_mol = unsafe { get_mol(input_cstr.as_ptr(), pkl_size, json_info.as_ptr()) };
         unsafe {
             if pkl_mol.is_null() || *pkl_size == 0 {
@@ -176,7 +176,7 @@ impl Molecule {
     pub fn get_mol(input: &str, json_info: &str) -> Molecule {
         let input_cstr = CString::new(input).unwrap();
         let json_info = CString::new(json_info).unwrap();
-        let pkl_size: *mut size_t = unsafe { libc::malloc(mem::size_of::<u64>()) as *mut u64 };
+        let pkl_size: *mut usize = unsafe { libc::malloc(mem::size_of::<u64>()) as *mut usize };
         let pkl_mol = unsafe { get_mol(input_cstr.as_ptr(), pkl_size, json_info.as_ptr()) };
         if pkl_mol.is_null() {
             panic!("Could not create molecule!");
@@ -505,7 +505,7 @@ impl Molecule {
     pub fn get_morgan_fp_as_bytes(&self, json_info: &str) -> Vec<i8> {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
-            let n_bytes: *mut size_t = libc::malloc(mem::size_of::<u64>()) as *mut size_t;
+            let n_bytes: *mut usize = libc::malloc(mem::size_of::<u64>()) as *mut usize;
             let fp_cchar: *mut c_char =
                 get_morgan_fp_as_bytes(self.pkl_mol, *self.pkl_size, n_bytes, json_info.as_ptr());
             let mut fp_bytes: Vec<i8> = Vec::new();
@@ -535,7 +535,7 @@ impl Molecule {
     pub fn get_rdkit_fp_as_bytes(&self, json_info: &str) -> Vec<i8> {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
-            let n_bytes: *mut size_t = libc::malloc(mem::size_of::<u64>()) as *mut size_t;
+            let n_bytes: *mut usize = libc::malloc(mem::size_of::<u64>()) as *mut usize;
             let fp_cchar: *mut c_char =
                 get_rdkit_fp_as_bytes(self.pkl_mol, *self.pkl_size, n_bytes, json_info.as_ptr());
             let mut fp_bytes: Vec<i8> = Vec::new();
@@ -565,7 +565,7 @@ impl Molecule {
     pub fn get_pattern_fp_as_bytes(&self, json_info: &str) -> Vec<i8> {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
-            let n_bytes: *mut size_t = libc::malloc(mem::size_of::<u64>()) as *mut size_t;
+            let n_bytes: *mut usize = libc::malloc(mem::size_of::<u64>()) as *mut usize;
             let fp_cchar: *mut c_char =
                 get_pattern_fp_as_bytes(self.pkl_mol, *self.pkl_size, n_bytes, json_info.as_ptr());
             let mut fp_bytes: Vec<i8> = Vec::new();
@@ -584,7 +584,7 @@ impl Molecule {
     pub fn get_qmol(input: &str, json_info: &str) -> Option<Molecule> {
         let input_cstr = CString::new(input).unwrap();
         let json_info = CString::new(json_info).unwrap();
-        let pkl_size: *mut size_t = unsafe { libc::malloc(mem::size_of::<u64>()) as *mut u64 };
+        let pkl_size: *mut usize = unsafe { libc::malloc(mem::size_of::<u64>()) as *mut usize };
         let pkl_mol = unsafe { get_qmol(input_cstr.as_ptr(), pkl_size, json_info.as_ptr()) };
         if pkl_mol.is_null() {
             return None;

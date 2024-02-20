@@ -16,9 +16,9 @@ keywords = ["RDKit", "cheminformatics","chemistry"]
 libc = "^0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-polars =  { version = "^0.18", features = ["json"]}
+polars =  { version = "0.37.0", features = ["json"]}
 
 [build-dependencies]
 cc = { version = "^1.0"}
-bindgen = "^0.58"
+bindgen = "0.69.3"
 

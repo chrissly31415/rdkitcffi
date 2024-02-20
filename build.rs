@@ -11,7 +11,6 @@ use std::process::Command;
 
 //use std::env;
 
-
 //compilation for rdkit commands
 //cmake -DRDK_BUILD_MINIMAL_LIB=ON -DRDK_BUILD_CFFI_LIB=ON  -DRDK_BUILD_INCHI_SUPPORT=ON -DRDK_BUILD_PYTHON_WRAPPERS=OFF ..
 //currently we cannot compile it directory from a submodule approach via a cmake crate because of the additional dependencies e.g. boost
@@ -71,7 +70,6 @@ fn main() {
     //pkg_config::Config::new().probe("rdkitcffi").unwrap();
 
     let bindings = bindgen::Builder::default()
-        //.trust_clang_mangling(false)
         .header("include/cffiwrapper.h")
         .clang_arg("-Iinclude/boost")
         .clang_arg("-Iinclude")
