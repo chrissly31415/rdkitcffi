@@ -1,3 +1,5 @@
+[![Rust](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rust.yml/badge.svg)](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rust.yml)
+
 # rdkitcffi
 
 This is an &#128679; experimental  &#128679; rust wrapper for some functionality of the great [RDKit](https://www.rdkit.org/) cheminformatics library.
