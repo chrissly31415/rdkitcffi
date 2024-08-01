@@ -4,11 +4,11 @@
 
 This is an &#128679; experimental  &#128679; rust wrapper for some functionality of the great [RDKit](https://www.rdkit.org/) cheminformatics library.
 
-It makes use of its new CFFI interface, see also this [blog post](https://greglandrum.github.io/rdkit-blog/technical/2021/05/01/rdkit-cffi-part1.html).
+It makes use of its CFFI interface, see also this [blog post](https://greglandrum.github.io/rdkit-blog/technical/2021/05/01/rdkit-cffi-part1.html).
  
 Use it at your own risk, its not recommended yet for productive use :-)  
 
-Please note, that only a limited functionality is being exposed via cffi by RDKit and not all of this is available yet via this interface. Have a look at the examples below and the test functions.  
+Only a limited functionality is being exposed via cffi by RDKit and not all of this is available yet via this interface. Have a look at the examples below and the test functions.  
 
 There are dependencies to specific version of boost and rdkit (some headers & the shared lib), see also the installation section.  
 The rdkitcffi.so shared library is downloaded during build from [azure](https://github.com/greglandrum/rdkit-minimallib-build). This could be done in a better and more dynamic way.
