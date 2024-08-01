@@ -793,7 +793,7 @@ mod tests {
     use super::*;
     #[test]
     fn basics() {
-        unsafe {        
+        unsafe {
             enable_logging();
             println!("Version: {:?}", version());
             disable_logging();
