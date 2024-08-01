@@ -24,7 +24,7 @@
 //!
 //! let natoms = mol.get_numatoms();
 //! ```
-//! 
+//!
 //! Additional arguments can be passed via json
 //!
 //! ```
@@ -38,7 +38,7 @@
 //!
 //! ```
 //!use rdkitcffi::{Molecule,read_sdfile};
-//! 
+//!
 //! let mut mol_opt_list : Vec<Option<Molecule>>= read_sdfile("data/test.sdf");
 //! let mut mol_list: Vec<Molecule> = mol_opt_list.into_iter().filter_map(|m| m).collect();
 //! mol_list.iter_mut().for_each(|m| m.remove_all_hs());
@@ -109,7 +109,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::value::Value;
 use std::collections::HashMap;
 
-use std::slice::Iter;
 use std::ffi::{CStr, CString};
 use std::fmt::Debug;
 use std::fs::read_to_string;
@@ -205,35 +204,35 @@ impl Molecule {
     }
 
     /// Gets the underlying Molecule object of the common chem structure
-    pub fn get_JsonMolecule(&self) -> JsonMolecule {
+    pub fn get_json_molecule(&self) -> JsonMolecule {
         let json_repr = self.get_json("");
-        JsonMolecule::JsonMolFromJson(&json_repr)
+        JsonMolecule::json_mol_from_json(&json_repr)
     }
 
     pub fn get_atoms(&self) -> Vec<JsonAtom> {
-        let json_mol = self.get_JsonMolecule();
+        let json_mol = self.get_json_molecule();
         json_mol.atoms
     }
 
     pub fn get_numatoms(&self) -> usize {
-        let json_mol = self.get_JsonMolecule();
+        let json_mol = self.get_json_molecule();
         json_mol.atoms.len()
     }
 
     pub fn get_bonds(&self) -> Vec<JsonBond> {
-        let json_mol = self.get_JsonMolecule();
+        let json_mol = self.get_json_molecule();
         json_mol.bonds
     }
 
     pub fn get_numbonds(&self) -> usize {
-        let json_mol = self.get_JsonMolecule();
+        let json_mol = self.get_json_molecule();
         json_mol.bonds.len()
     }
 
     /// Get a 2 dimensional vector with atomic coordinates
     pub fn get_coords(&self) -> Vec<Vec<f32>> {
-        let json_mol = self.get_JsonMolecule();
-        let conf: &JsonConformer = json_mol.conformers.get(0).unwrap().clone();
+        let json_mol = self.get_json_molecule();
+        let conf: &JsonConformer = json_mol.conformers.get(0).unwrap();
         conf.coords.to_owned()
     }
 
@@ -598,13 +597,13 @@ pub fn read_smifile(smi_file: &str) -> Vec<Option<Molecule>> {
     let smi_file = read_to_string(smi_file).expect("Could not load file.");
     let mut mol_list: Vec<Option<Molecule>> = Vec::new();
     let smiles_list: Vec<&str> = smi_file.split("\n").collect();
-    for (i, s) in smiles_list.iter().enumerate() {
+    for s in smiles_list.iter() {
         let s_mod = s.trim();
         if s_mod.len() == 0 {
             mol_list.push(None);
             continue;
         };
-        let mol_opt =  Molecule::new(s_mod, "");
+        let mol_opt = Molecule::new(s_mod, "");
         mol_list.push(mol_opt);
     }
     mol_list
@@ -629,17 +628,16 @@ pub fn read_sdfile(sd_file: &str) -> Vec<Option<Molecule>> {
             continue;
         };
         let mut mol_opt = Molecule::new(s_mod, "");
-        
+
         // this avoids hard to catch exceptions later on...
         //match mol_opt.as_mut() {
         //    Some(mut mol_opt) => {mol_opt.cleanup(""); Some(mol_opt)},
         //    None => None,
-        //};  
+        //};
         mol_list.push(mol_opt);
     }
     mol_list
 }
-
 
 /// read a classical .sdf file, filter molecules which are none
 pub fn read_sdfile_unwrap(sd_file: &str) -> Vec<Molecule> {
@@ -647,7 +645,6 @@ pub fn read_sdfile_unwrap(sd_file: &str) -> Vec<Molecule> {
     let mol_list: Vec<Molecule> = mol_opt_list.into_iter().filter_map(|m| m).collect();
     mol_list
 }
-
 
 pub struct SDIterator {
     molblock_iterator: std::vec::IntoIter<String>,
@@ -658,7 +655,7 @@ impl SDIterator {
         let sd_file = read_to_string(pathname).expect("Could not load file.");
         let molblock_list: Vec<String> = sd_file.split("$$$$").map(|x| x.to_string()).collect();
         let molblock_iterator = molblock_list.into_iter();
-        SDIterator {molblock_iterator}
+        SDIterator { molblock_iterator }
     }
 }
 
@@ -667,11 +664,11 @@ impl Iterator for SDIterator {
     fn next(&mut self) -> Option<Self::Item> {
         let molblock = self.molblock_iterator.next();
         let s_mod = match molblock {
-            Some(molblock) => { molblock.trim().to_string()},
-            None => {return None},
+            Some(molblock) => molblock.trim().to_string(),
+            None => return None,
         };
         if s_mod.len() == 0 {
-            self.next(); //last line  
+            self.next(); //last line
         };
         let mut mol_opt = Molecule::new(&s_mod, "");
         Some(mol_opt)
@@ -763,26 +760,26 @@ fn stereo_default() -> String {
 impl JsonMolecule {
     ///Create new molecule from smiles, SD file or json
     pub fn new(self, molstring: &str) -> JsonMolecule {
-        JsonMolecule::JsonMolFromString(molstring, "")
+        JsonMolecule::json_mol_from_string(molstring, "")
     }
 
-    pub fn JsonMolFromString(molstring: &str, json_info: &str) -> JsonMolecule {
-        let json_str = JSONFromString(molstring, json_info);
-        JsonMolecule::JsonMolFromJson(&json_str)
+    pub fn json_mol_from_string(molstring: &str, json_info: &str) -> JsonMolecule {
+        let json_str = jsonfrom_string(molstring, json_info);
+        JsonMolecule::json_mol_from_json(&json_str)
     }
 
-    pub fn JsonMolFromSmiles(smiles: &str, json_info: &str) -> JsonMolecule {
-        JsonMolecule::JsonMolFromString(smiles, "")
+    pub fn json_mol_from_smiles(smiles: &str, json_info: &str) -> JsonMolecule {
+        JsonMolecule::json_mol_from_string(smiles, "")
     }
 
-    pub fn JsonMolFromJson(json_str: &str) -> JsonMolecule {
+    pub fn json_mol_from_json(json_str: &str) -> JsonMolecule {
         let rdkit_json: JsonBase = serde_json::from_str(&json_str).expect("Wrong JSON format!?");
         let mol = serde_json::to_string(&rdkit_json.molecules[0]).unwrap();
         serde_json::from_str(&mol).expect("Wrong JSON format!?")
     }
 }
 
-pub fn JSONFromString(input: &str, json_info: &str) -> String {
+pub fn jsonfrom_string(input: &str, json_info: &str) -> String {
     //let (pkl_mol, pkl_size) = Molecule::PklFromString(input, json_info);
     let pkl_mol = Molecule::new(input, json_info).unwrap();
     let mol_json_str = pkl_mol.get_json(json_info);
@@ -819,7 +816,7 @@ mod tests {
         assert_eq!(mol_list.len(), 11);
     }
 
-/*     #[test]
+    /*     #[test]
     fn sditerator() {
         let sdreader = SDIterator::new("data/test.sdf");
         for mol_opt in sdreader {
@@ -828,17 +825,16 @@ mod tests {
 
     } */
 
-
     #[test]
     fn sdfile2molecules() {
         let mut mol_list: Vec<Option<Molecule>> = read_sdfile("data/test.sdf");
         println!("mols: {}", mol_list.len());
-        for (i, mol_opt) in mol_list.iter_mut().enumerate() {
-            let  mol = mol_opt.as_mut().unwrap_or(continue);
+        for (_i, mol_opt) in mol_list.iter_mut().enumerate() {
+            let mol = mol_opt.as_mut().unwrap_or(continue);
             mol.remove_all_hs();
             println!(
                 "Pos:{} INCHIKEY: {} SMILES: {} NUMATOMS: {} NUMBONDS: {}",
-                i,
+                _i,
                 mol.get_inchikey(""),
                 mol.get_smiles(""),
                 mol.get_numatoms(),
@@ -947,28 +943,28 @@ mod tests {
     fn get_json_molecule() {
         let orig_smiles = "C#C";
         let pkl_mol = Molecule::new(orig_smiles, "").unwrap();
-        let json_mol = pkl_mol.get_JsonMolecule();
+        let json_mol = pkl_mol.get_json_molecule();
         println!("json molecule:    {:?}", json_mol);
         let atoms = json_mol.atoms;
         assert_eq!(atoms.len(), 2);
     }
     #[test]
     fn jsonmolecule_from_smiles() {
-        let json_mol = JsonMolecule::JsonMolFromSmiles("CC(C)CCCO", "");
+        let json_mol = JsonMolecule::json_mol_from_smiles("CC(C)CCCO", "");
         println!("{:?}", json_mol);
         let bonds = json_mol.bonds;
         assert_eq!(bonds.len(), 6);
     }
     #[test]
     fn json_str_from_smiles() {
-        let json_str = JSONFromString("CCCI", "");
+        let json_str = jsonfrom_string("CCCI", "");
         println!("JSON:{}", json_str);
         //let json_mol = json_mol_str.;
         assert_eq!(json_str,"{\"commonchem\":{\"version\":10},\"defaults\":{\"atom\":{\"z\":6,\"impHs\":0,\"chg\":0,\"nRad\":0,\"isotope\":0,\"stereo\":\"unspecified\"},\"bond\":{\"bo\":1,\"stereo\":\"unspecified\"}},\"molecules\":[{\"atoms\":[{\"impHs\":3},{\"impHs\":2},{\"impHs\":2},{\"z\":53}],\"bonds\":[{\"atoms\":[0,1]},{\"atoms\":[1,2]},{\"atoms\":[2,3]}],\"extensions\":[{\"name\":\"rdkitRepresentation\",\"formatVersion\":2,\"toolkitVersion\":\"2021.09.11\"}]}]}");
     }
     #[test]
     fn json_str_from_sdf() {
-        let json_str = JSONFromString("\n     RDKit          2D\n\n  7  6  0  0  0  0  0  0  0  0999 V2000\n    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    1.2990    0.7500    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n    2.5981   -0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    3.8971    0.7500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    5.1962   -0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    6.4952    0.7500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    7.7942    1.5000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\n  2  3  1  0\n  3  4  1  0\n  4  5  2  3\n  5  6  1  0\n  6  7  3  0\nM  END\n", "");
+        let json_str = jsonfrom_string("\n     RDKit          2D\n\n  7  6  0  0  0  0  0  0  0  0999 V2000\n    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    1.2990    0.7500    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n    2.5981   -0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    3.8971    0.7500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    5.1962   -0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    6.4952    0.7500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    7.7942    1.5000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\n  2  3  1  0\n  3  4  1  0\n  4  5  2  3\n  5  6  1  0\n  6  7  3  0\nM  END\n", "");
         println!("JSON:{}", json_str);
         assert_eq!(json_str,"{\"commonchem\":{\"version\":10},\"defaults\":{\"atom\":{\"z\":6,\"impHs\":0,\"chg\":0,\"nRad\":0,\"isotope\":0,\"stereo\":\"unspecified\"},\"bond\":{\"bo\":1,\"stereo\":\"unspecified\"}},\"molecules\":[{\"name\":\"\",\"atoms\":[{\"impHs\":3},{\"z\":8},{\"impHs\":2},{\"impHs\":1},{\"impHs\":1},{},{\"impHs\":1}],\"bonds\":[{\"atoms\":[0,1]},{\"atoms\":[1,2]},{\"atoms\":[2,3]},{\"bo\":2,\"atoms\":[3,4],\"stereo\":\"either\"},{\"atoms\":[4,5]},{\"bo\":3,\"atoms\":[5,6]}],\"conformers\":[{\"dim\":2,\"coords\":[[0.0,0.0],[1.299,0.75],[2.5981,-0.0],[3.8971,0.75],[5.1962,-0.0],[6.4952,0.75],[7.7942,1.5]]}],\"extensions\":[{\"name\":\"rdkitRepresentation\",\"formatVersion\":2,\"toolkitVersion\":\"2021.09.11\"}]}]}");
     }
