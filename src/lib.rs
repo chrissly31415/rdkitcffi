@@ -1,6 +1,6 @@
-//! This is an experimental (and not official) rust wrapper for some functionality of the great open source cheminformatics [RDKit](https://www.rdkit.org/) library.
+//! This is an experimental rust wrapper for some functionality of the great open source cheminformatics [RDKit](https://www.rdkit.org/) library.
 //!
-//! It makes use of its new (and also still experimental) C Foreign Function Interface (CFFI), see also this [blog post](https://greglandrum.github.io/rdkit-blog/technical/2021/05/01/rdkit-cffi-part1.html).
+//! It makes use of its new (and also still experimental) C Foreign Function Interface (cffi) functionality, see also this [blog post](https://greglandrum.github.io/rdkit-blog/technical/2021/05/01/rdkit-cffi-part1.html).
 //!
 //! Use it at your own risk, its not yet recommended for productive use and only available for linux :-)
 //!

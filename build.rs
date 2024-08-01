@@ -9,6 +9,8 @@ use std::env;
 use std::path::{PathBuf, Path};
 use std::process::Command;
 
+use bindgen::CargoCallbacks;
+
 //use std::env;
 
 //compilation for rdkit commands
@@ -115,7 +117,7 @@ fn main() {
         .allowlist_function("prefer_coordgen")
         .allowlist_function("set_2d_coords_aligned")
 
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .parse_callbacks(Box::new(CargoCallbacks::new()))
 
         .generate()
 

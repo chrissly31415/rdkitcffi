@@ -15,8 +15,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      - uses: actions/checkout@v4
+
+      - name: Update local toolchain
+        run: |
+          rustup update
+          rustup component add clippy        
+
+      - name: Toolchain info
+        run: |
+          cargo --version --verbose
+          rustc --version
+          cargo clippy --version          
+
+      - name: Lint
+        run: |
+          cargo fmt -- --check
+          cargo clippy -- -D warnings          
+      
+      - name: Build
+        run: |
+          cargo build --verbose
+
+      - name: Test
+        run: |
+          cargo check
+          cargo test --all --verbose         
+
+      
+
