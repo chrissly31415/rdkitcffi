@@ -788,7 +788,17 @@ pub fn jsonfrom_string(input: &str, json_info: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use bindings::{disable_logging, version};
+
     use super::*;
+    #[test]
+    fn basics() {
+        unsafe {        
+            enable_logging();
+            println!("Version: {:?}", version());
+            disable_logging();
+        }
+    }
     #[test]
     fn smiles2descriptors() {
         let orig_smiles = "CCCN";
