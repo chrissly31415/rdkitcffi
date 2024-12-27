@@ -27,7 +27,6 @@ jobs:
         run: |
           git clone https://github.com/rdkit/rdkit.git --branch Release_2024_09 --single-branch rdkit --depth=1
           cd rdkit
-          # Update InChI download URL and checksum
           mkdir build && cd build
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
@@ -54,7 +53,25 @@ jobs:
           ln -s librdkitcffi.so.1.* librdkitcffi.so
           ln -s librdkitcffi.so.1.* librdkitcffi.so.1
 
-      # Rust toolchain setup and build
+      # Create and publish artifact immediately after RDKit build
+      - name: Create artifact
+        run: |
+          cd $GITHUB_WORKSPACE/lib
+          tar czf rdkitcffi_linux.tar.gz rdkitcffi_linux/
+
+      - name: Create Release
+        if: github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ github.workspace }}/lib/rdkitcffi_linux.tar.gz
+          tag_name: rdkit-latest
+          name: Latest RDKit CFFI Build
+          body: Automated RDKit CFFI library build
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Rust build steps after library is ready
       - name: Update local toolchain
         run: |
           rustup update
@@ -79,24 +96,6 @@ jobs:
         run: |
           cargo check
           cargo test --all --verbose
-
-      - name: Create artifact
-        if: github.ref == 'refs/heads/master'
-        run: |
-          cd $GITHUB_WORKSPACE/lib
-          tar czf rdkitcffi_linux.tar.gz rdkitcffi_linux/
-
-      - name: Create Release
-        if: github.ref == 'refs/heads/master'
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ${{ github.workspace }}/lib/rdkitcffi_linux.tar.gz
-          tag_name: rdkit-latest
-          name: Latest RDKit CFFI Build
-          body: Automated RDKit CFFI library build
-          prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       
 
