@@ -27,6 +27,9 @@ jobs:
         run: |
           git clone https://github.com/rdkit/rdkit.git --branch Release_2021_09 --single-branch rdkit --depth=1
           cd rdkit
+          # Update InChI download URL and checksum
+          sed -i 's|https://www.inchi-trust.org/download/106/INCHI-1-SRC.zip|https://www.inchi-trust.org/download/106/INCHI-1-SRC.zip|g' Code/cmake/Modules/RDKitUtils.cmake
+          sed -i 's|f2efa0c58cef32915686c04d7055b4e9|0406f93e5231fd3303ceb41467b47566|g' Code/cmake/Modules/RDKitUtils.cmake
           mkdir build && cd build
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
@@ -38,7 +41,8 @@ jobs:
             -DRDK_BUILD_INCHI_SUPPORT=ON \
             -DRDK_BUILD_THREADSAFE_SSS=ON \
             -DRDK_TEST_MULTITHREADED=ON \
-            -DRDK_BUILD_CFFI_LIB=ON
+            -DRDK_BUILD_CFFI_LIB=ON \
+            -DDOWNLOAD_INCHI_DEP=ON
           make -j 2 cffi_test
 
       # Set up environment variables and copy library
