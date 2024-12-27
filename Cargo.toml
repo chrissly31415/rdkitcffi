@@ -1,7 +1,7 @@
 [package]
 description = "A wrapper for some RDKit cheminformatics functionality"
 name = "rdkitcffi"
-version = "0.0.1"
+version = "0.1.0"
 links = "rdkitcffi"
 build = "build.rs"
 edition = "2018"
@@ -21,4 +21,10 @@ polars =  { version = "0.37.0", features = ["json"]}
 [build-dependencies]
 cc = { version = "^1.0"}
 bindgen = "0.69.3"
+
+[dev-dependencies]
+test-env-log = "0.2"
+
+[package.metadata.cargo-test-env]
+LD_LIBRARY_PATH = { value = "./rdkitcffi_linux/linux-64", relative = true }
 

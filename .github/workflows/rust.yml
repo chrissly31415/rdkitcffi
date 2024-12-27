@@ -22,9 +22,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y git g++ gcc wget make cmake libboost-all-dev libfreetype6-dev
 
-      # Clone and build RDKit
+      # Clone and build RDKit with static Boost
       - name: Build RDKit
         run: |
+          # First build Boost static libraries
+          wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.tar.gz
+          tar xzf boost_1_83_0.tar.gz
+          cd boost_1_83_0
+          ./bootstrap.sh --with-libraries=serialization,system,iostreams
+          ./b2 link=static runtime-link=shared threading=multi
+          cd ..
+
+          # Build RDKit with static Boost
           git clone https://github.com/rdkit/rdkit.git --branch Release_2024_09 --single-branch rdkit --depth=1
           cd rdkit
           mkdir build && cd build
@@ -39,24 +48,31 @@ jobs:
             -DRDK_BUILD_THREADSAFE_SSS=ON \
             -DRDK_TEST_MULTITHREADED=ON \
             -DRDK_BUILD_CFFI_LIB=ON \
-            -DDOWNLOAD_INCHI_DEP=ON
+            -DDOWNLOAD_INCHI_DEP=ON \
+            -DBoost_USE_STATIC_LIBS=ON \
+            -DBOOST_ROOT=$GITHUB_WORKSPACE/boost_1_83_0 \
+            -DBoost_NO_SYSTEM_PATHS=ON
           make -j 2 cffi_test
 
-      # Set up environment variables and copy library
+      # Set up environment variables and copy libraries
       - name: Setup RDKit environment
         run: |
           echo "RDBASE=$GITHUB_WORKSPACE/rdkit" >> $GITHUB_ENV
           echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/rdkit/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-          mkdir -p $GITHUB_WORKSPACE/lib/rdkitcffi_linux/linux-64
-          cp rdkit/build/lib/librdkitcffi.so.1.* $GITHUB_WORKSPACE/lib/rdkitcffi_linux/linux-64/
-          cd $GITHUB_WORKSPACE/lib/rdkitcffi_linux/linux-64
+          
+          # Create directory structure
+          mkdir -p $GITHUB_WORKSPACE/rdkitcffi_linux/linux-64
+          
+          # Copy RDKit CFFI library
+          cp rdkit/build/lib/librdkitcffi.so.1.* $GITHUB_WORKSPACE/rdkitcffi_linux/linux-64/
+          cd $GITHUB_WORKSPACE/rdkitcffi_linux/linux-64
           ln -s librdkitcffi.so.1.* librdkitcffi.so
           ln -s librdkitcffi.so.1.* librdkitcffi.so.1
 
-      # Create and publish artifact immediately after RDKit build
+      # Create and publish artifact
       - name: Create artifact
         run: |
-          cd $GITHUB_WORKSPACE/lib
+          cd $GITHUB_WORKSPACE
           tar czf rdkitcffi_linux.tar.gz rdkitcffi_linux/
 
       - name: Create Release

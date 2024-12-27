@@ -23,7 +23,7 @@ use bindgen::CargoCallbacks;
 
 fn download_rdkit_artifact() -> Option<String> {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("Failed to get CARGO_MANIFEST_DIR");
-    let lib_dir = format!("{}/lib/rdkitcffi_linux/linux-64", manifest_dir);
+    let lib_dir = format!("{}/rdkitcffi_linux/linux-64", manifest_dir);
 
     // Create directories if they don't exist
     std::fs::create_dir_all(&lib_dir).ok()?;
@@ -83,7 +83,7 @@ fn download_rdkit_artifact() -> Option<String> {
 
 fn build_rdkit() -> Option<String> {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("Failed to get CARGO_MANIFEST_DIR");
-    let lib_dir = format!("{}/lib/rdkitcffi_linux/linux-64", manifest_dir);
+    let lib_dir = format!("{}/rdkitcffi_linux/linux-64", manifest_dir);
 
     // Clone RDKit
     if !Command::new("git")
