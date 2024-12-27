@@ -173,22 +173,22 @@ fn build_rdkit() -> Option<String> {
 }
 
 fn get_rdkit_lib_path() -> String {
-    // First try building
-    println!("cargo:warning=Attempting to build RDKit...");
-    if let Some(path) = build_rdkit() {
-        println!("cargo:warning=Successfully built RDKit");
-        return path;
-    }
-
-    // If build fails, try downloading
-    println!("cargo:warning=Build failed, attempting to download pre-built artifact...");
+    // First try downloading
+    println!("cargo:warning=Attempting to download pre-built RDKit artifact...");
     if let Some(path) = download_rdkit_artifact() {
         println!("cargo:warning=Successfully downloaded RDKit artifact");
         return path;
     }
 
+    // If download fails, try building
+    println!("cargo:warning=Download failed, attempting to build RDKit...");
+    if let Some(path) = build_rdkit() {
+        println!("cargo:warning=Successfully built RDKit");
+        return path;
+    }
+
     // If both fail, panic with helpful message
-    panic!("Failed to either build or download RDKit. Please ensure you have the required dependencies installed or check your internet connection.");
+    panic!("Failed to either download or build RDKit. Please ensure you have internet connection or the required dependencies installed.");
 }
 
 fn main() {
