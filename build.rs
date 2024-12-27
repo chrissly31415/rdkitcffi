@@ -21,78 +21,189 @@ use bindgen::CargoCallbacks;
 //one need to set LD_LIBRARY_PATH manually if binary is called without cargo
 //e.g. export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/username/calc/rdkitcffi/lib/rdkitcffi_linux/linux-64
 
-fn download_rdkit_artefact() -> String {
-    //download rdkit cffi lib from azure
-    let out_dir = env::var("OUT_DIR").unwrap();
+fn download_rdkit_artifact() -> Option<String> {
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR")
+        .expect("Failed to get CARGO_MANIFEST_DIR");
+    let lib_dir = format!("{}/lib/rdkitcffi_linux/linux-64", manifest_dir);
+    
+    // Create directories if they don't exist
+    std::fs::create_dir_all(&lib_dir).ok()?;
 
-    let cffi_url = "https://artprodsu6weu.artifacts.visualstudio.com/A85885aaa-9279-4937-b9af-77f592b58cf7/b9a21ad4-0deb-4a21-8386-996d0e642d94/_apis/artifact/cGlwZWxpbmVhcnRpZmFjdDovL3Jka2l0LWJ1aWxkcy9wcm9qZWN0SWQvYjlhMjFhZDQtMGRlYi00YTIxLTgzODYtOTk2ZDBlNjQyZDk0L2J1aWxkSWQvMTMwNy9hcnRpZmFjdE5hbWUvcmRraXRjZmZpX2xpbnV40/content?format=zip";
-    let cffi_zip = "rdkitcffi.zip";
-    let rdkit_branch = ".1.2021.09.11.0";
-    let shared_lib_name = "librdkitcffi.so";
-    let shared_lib_dir = format!("{}{}", out_dir, "/lib/rdkitcffi_linux/linux-64/");
-    let artefact_name = format!("{}{}", shared_lib_name, rdkit_branch);
+    // Download from GitHub release
+    let repo_owner = "chrissly31415"; // Replace with your GitHub username
+    let repo_name = "rdkitcffi";      // Replace with your repo name
+    let release_tag = "rdkit-latest";
+    let artifact_name = "rdkitcffi_linux.tar.gz";
+    
+    let download_url = format!(
+        "https://github.com/{}/{}/releases/download/{}/{}",
+        repo_owner, repo_name, release_tag, artifact_name
+    );
 
-    Command::new("wget")
-        .args(["-O", cffi_zip, cffi_url])
+    // Download the tarball
+    if Command::new("wget")
+        .args(["-O", artifact_name, &download_url])
         .status()
-        .unwrap();
-    Command::new("unzip")
-        .args([cffi_zip, "-d", &format!("{}{}", out_dir, "/lib")])
-        .status()
-        .unwrap();
-    Command::new("ln")
-        .args([
-            "-s",
-            &artefact_name,
-            &format!("{}{}", shared_lib_dir, shared_lib_name),
-        ])
-        .status()
-        .unwrap();
-    Command::new("ln")
-        .args([
-            "-s",
-            &artefact_name,
-            &format!("{}{}.1", shared_lib_dir, shared_lib_name),
-        ])
-        .status()
-        .unwrap();
+        .ok()?
+        .success() 
+    {
+        // Extract the tarball
+        Command::new("tar")
+            .args(["xzf", artifact_name, "-C", &manifest_dir])
+            .status()
+            .ok()?;
 
-    let shared_lib_path = Path::new(&shared_lib_name).join("shared_lib_dir");
+        // Clean up downloaded tarball
+        std::fs::remove_file(artifact_name).ok()?;
 
-    if !shared_lib_path.exists() {
-        println!("shared_lib_path: {:?}", shared_lib_path);
-    } else {
-        eprintln!(
-            "Could not download rdkti cffi shared library from:\n {}",
-            cffi_url
-        );
-        eprintln!("Consider downloading it manually!")
+        // Create symlinks
+        let lib_files = std::fs::read_dir(&lib_dir).ok()?;
+        for entry in lib_files {
+            if let Ok(entry) = entry {
+                let filename = entry.file_name();
+                if let Some(name) = filename.to_str() {
+                    if name.starts_with("librdkitcffi.so.1.") {
+                        Command::new("ln")
+                            .args(["-sf", name, &format!("{}/librdkitcffi.so", lib_dir)])
+                            .status()
+                            .ok()?;
+                        Command::new("ln")
+                            .args(["-sf", name, &format!("{}/librdkitcffi.so.1", lib_dir)])
+                            .status()
+                            .ok()?;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        return Some(lib_dir);
+    }
+    None
+}
+
+fn build_rdkit() -> Option<String> {
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR")
+        .expect("Failed to get CARGO_MANIFEST_DIR");
+    let lib_dir = format!("{}/lib/rdkitcffi_linux/linux-64", manifest_dir);
+
+    // Clone RDKit
+    if !Command::new("git")
+        .args(["clone", "https://github.com/rdkit/rdkit.git", 
+              "--branch", "Release_2021_09", 
+              "--single-branch", "--depth=1"])
+        .status()
+        .ok()?
+        .success() 
+    {
+        return None;
     }
 
-    shared_lib_dir.to_string()
+    // Create build directory and run cmake
+    std::fs::create_dir_all("rdkit/build").ok()?;
+    if !Command::new("cmake")
+        .current_dir("rdkit/build")
+        .args([
+            "..",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DRDK_BUILD_CPP_TESTS=OFF",
+            "-DRDK_BUILD_PYTHON_WRAPPERS=OFF",
+            "-DRDK_BUILD_COORDGEN_SUPPORT=ON",
+            "-DRDK_BUILD_MAEPARSER_SUPPORT=ON",
+            "-DRDK_OPTIMIZE_POPCNT=ON",
+            "-DRDK_BUILD_INCHI_SUPPORT=ON",
+            "-DRDK_BUILD_THREADSAFE_SSS=ON",
+            "-DRDK_TEST_MULTITHREADED=ON",
+            "-DRDK_BUILD_CFFI_LIB=ON",
+        ])
+        .status()
+        .ok()?
+        .success() 
+    {
+        return None;
+    }
+
+    // Build
+    if !Command::new("make")
+        .current_dir("rdkit/build")
+        .args(["-j2", "cffi_test"])
+        .status()
+        .ok()?
+        .success() 
+    {
+        return None;
+    }
+
+    // Create lib directory and copy files
+    std::fs::create_dir_all(&lib_dir).ok()?;
+    let source_lib = std::fs::read_dir("rdkit/build/lib")
+        .ok()?
+        .filter_map(Result::ok)
+        .find(|entry| {
+            entry.file_name()
+                .to_str()
+                .map(|s| s.starts_with("librdkitcffi.so.1."))
+                .unwrap_or(false)
+        })?;
+
+    std::fs::copy(
+        source_lib.path(),
+        format!("{}/{}", lib_dir, source_lib.file_name().to_str()?)
+    ).ok()?;
+
+    // Create symlinks
+    let lib_name = source_lib.file_name();
+    Command::new("ln")
+        .current_dir(&lib_dir)
+        .args(["-sf", lib_name.to_str()?, "librdkitcffi.so"])
+        .status()
+        .ok()?;
+    Command::new("ln")
+        .current_dir(&lib_dir)
+        .args(["-sf", lib_name.to_str()?, "librdkitcffi.so.1"])
+        .status()
+        .ok()?;
+
+    Some(lib_dir)
+}
+
+fn get_rdkit_lib_path() -> String {
+    // First try building
+    println!("cargo:warning=Attempting to build RDKit...");
+    if let Some(path) = build_rdkit() {
+        println!("cargo:warning=Successfully built RDKit");
+        return path;
+    }
+
+    // If build fails, try downloading
+    println!("cargo:warning=Build failed, attempting to download pre-built artifact...");
+    if let Some(path) = download_rdkit_artifact() {
+        println!("cargo:warning=Successfully downloaded RDKit artifact");
+        return path;
+    }
+
+    // If both fail, panic with helpful message
+    panic!("Failed to either build or download RDKit. Please ensure you have the required dependencies installed or check your internet connection.");
 }
 
 fn main() {
     let out_dir = env::var_os("OUT_DIR").unwrap();
     println!("out_dir: {:?}", out_dir);
 
-    let shared_lib_dir = download_rdkit_artefact();
-    //let key = "LD_LIBRARY_PATH";
-    //#env::set_var(key, shared_lib_dir);
+    let shared_lib_dir = get_rdkit_lib_path();
+    println!("shared_lib_dir: {}", shared_lib_dir);
 
-    //this sets the dynamic lib path only during build
+    // Link configuration
     println!("cargo:rustc-link-search=native={}", shared_lib_dir);
     println!("cargo:rustc-link-lib=dylib=rdkitcffi");
-
-    println!("cargo:rerun-if-changed=wrapper.h");
-
-    //use this for dynamic lib path cargo test & run
+    
+    // Rebuild if header changes
+    println!("cargo:rerun-if-changed=include/cffiwrapper.h");
+    
+    // Set up library path for tests and run
     println!("cargo:rustc-env=LD_LIBRARY_PATH={}", shared_lib_dir);
 
-    //pkg_config::Config::new().probe("boost").unwrap();
-
-    //pkg_config::Config::new().probe("rdkitcffi").unwrap();
-
+    // Generate bindings
     let bindings = bindgen::Builder::default()
         .header("include/cffiwrapper.h")
         .clang_arg("-Iinclude/boost")
@@ -142,8 +253,6 @@ fn main() {
         .expect("Unable to generate bindings");
 
     let out_path = PathBuf::from("./src");
-    //let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-
     bindings
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings!");

@@ -11,28 +11,64 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
+      # Install build dependencies
+      - name: Setup build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git g++ gcc wget make cmake libboost-all-dev
+
+      # Clone and build RDKit
+      - name: Build RDKit
+        run: |
+          git clone https://github.com/rdkit/rdkit.git --branch Release_2021_09 --single-branch rdkit --depth=1
+          cd rdkit
+          mkdir build && cd build
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DRDK_BUILD_CPP_TESTS=OFF \
+            -DRDK_BUILD_PYTHON_WRAPPERS=OFF \
+            -DRDK_BUILD_COORDGEN_SUPPORT=ON \
+            -DRDK_BUILD_MAEPARSER_SUPPORT=ON \
+            -DRDK_OPTIMIZE_POPCNT=ON \
+            -DRDK_BUILD_INCHI_SUPPORT=ON \
+            -DRDK_BUILD_THREADSAFE_SSS=ON \
+            -DRDK_TEST_MULTITHREADED=ON \
+            -DRDK_BUILD_CFFI_LIB=ON
+          make -j 2 cffi_test
+
+      # Set up environment variables and copy library
+      - name: Setup RDKit environment
+        run: |
+          echo "RDBASE=$GITHUB_WORKSPACE/rdkit" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/rdkit/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          mkdir -p $GITHUB_WORKSPACE/lib/rdkitcffi_linux/linux-64
+          cp rdkit/build/lib/librdkitcffi.so.1.* $GITHUB_WORKSPACE/lib/rdkitcffi_linux/linux-64/
+          cd $GITHUB_WORKSPACE/lib/rdkitcffi_linux/linux-64
+          ln -s librdkitcffi.so.1.* librdkitcffi.so
+          ln -s librdkitcffi.so.1.* librdkitcffi.so.1
+
+      # Rust toolchain setup and build
       - name: Update local toolchain
         run: |
           rustup update
-          rustup component add clippy        
+          rustup component add clippy
 
       - name: Toolchain info
         run: |
           cargo --version --verbose
           rustc --version
-          cargo clippy --version          
+          cargo clippy --version
 
       - name: Lint
         run: |
           cargo fmt -- --check
-          cargo clippy         
-      
+          cargo clippy
+
       - name: Build
         run: |
           cargo build --verbose
@@ -40,7 +76,25 @@ jobs:
       - name: Test
         run: |
           cargo check
-          cargo test --all --verbose         
+          cargo test --all --verbose
+
+      - name: Create artifact
+        if: github.ref == 'refs/heads/master'
+        run: |
+          cd $GITHUB_WORKSPACE/lib
+          tar czf rdkitcffi_linux.tar.gz rdkitcffi_linux/
+
+      - name: Create Release
+        if: github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ github.workspace }}/lib/rdkitcffi_linux.tar.gz
+          tag_name: rdkit-latest
+          name: Latest RDKit CFFI Build
+          body: Automated RDKit CFFI library build
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       
 
