@@ -22,19 +22,18 @@ use bindgen::CargoCallbacks;
 //e.g. export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/username/calc/rdkitcffi/lib/rdkitcffi_linux/linux-64
 
 fn download_rdkit_artifact() -> Option<String> {
-    let manifest_dir = env::var("CARGO_MANIFEST_DIR")
-        .expect("Failed to get CARGO_MANIFEST_DIR");
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("Failed to get CARGO_MANIFEST_DIR");
     let lib_dir = format!("{}/lib/rdkitcffi_linux/linux-64", manifest_dir);
-    
+
     // Create directories if they don't exist
     std::fs::create_dir_all(&lib_dir).ok()?;
 
     // Download from GitHub release
     let repo_owner = "chrissly31415"; // Replace with your GitHub username
-    let repo_name = "rdkitcffi";      // Replace with your repo name
+    let repo_name = "rdkitcffi"; // Replace with your repo name
     let release_tag = "rdkit-latest";
     let artifact_name = "rdkitcffi_linux.tar.gz";
-    
+
     let download_url = format!(
         "https://github.com/{}/{}/releases/download/{}/{}",
         repo_owner, repo_name, release_tag, artifact_name
@@ -45,7 +44,7 @@ fn download_rdkit_artifact() -> Option<String> {
         .args(["-O", artifact_name, &download_url])
         .status()
         .ok()?
-        .success() 
+        .success()
     {
         // Extract the tarball
         Command::new("tar")
@@ -76,25 +75,29 @@ fn download_rdkit_artifact() -> Option<String> {
                 }
             }
         }
-        
+
         return Some(lib_dir);
     }
     None
 }
 
 fn build_rdkit() -> Option<String> {
-    let manifest_dir = env::var("CARGO_MANIFEST_DIR")
-        .expect("Failed to get CARGO_MANIFEST_DIR");
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("Failed to get CARGO_MANIFEST_DIR");
     let lib_dir = format!("{}/lib/rdkitcffi_linux/linux-64", manifest_dir);
 
     // Clone RDKit
     if !Command::new("git")
-        .args(["clone", "https://github.com/rdkit/rdkit.git", 
-              "--branch", "Release_2021_09", 
-              "--single-branch", "--depth=1"])
+        .args([
+            "clone",
+            "https://github.com/rdkit/rdkit.git",
+            "--branch",
+            "Release_2021_09",
+            "--single-branch",
+            "--depth=1",
+        ])
         .status()
         .ok()?
-        .success() 
+        .success()
     {
         return None;
     }
@@ -118,7 +121,7 @@ fn build_rdkit() -> Option<String> {
         ])
         .status()
         .ok()?
-        .success() 
+        .success()
     {
         return None;
     }
@@ -129,7 +132,7 @@ fn build_rdkit() -> Option<String> {
         .args(["-j2", "cffi_test"])
         .status()
         .ok()?
-        .success() 
+        .success()
     {
         return None;
     }
@@ -140,7 +143,8 @@ fn build_rdkit() -> Option<String> {
         .ok()?
         .filter_map(Result::ok)
         .find(|entry| {
-            entry.file_name()
+            entry
+                .file_name()
                 .to_str()
                 .map(|s| s.starts_with("librdkitcffi.so.1."))
                 .unwrap_or(false)
@@ -148,8 +152,9 @@ fn build_rdkit() -> Option<String> {
 
     std::fs::copy(
         source_lib.path(),
-        format!("{}/{}", lib_dir, source_lib.file_name().to_str()?)
-    ).ok()?;
+        format!("{}/{}", lib_dir, source_lib.file_name().to_str()?),
+    )
+    .ok()?;
 
     // Create symlinks
     let lib_name = source_lib.file_name();
@@ -196,10 +201,10 @@ fn main() {
     // Link configuration
     println!("cargo:rustc-link-search=native={}", shared_lib_dir);
     println!("cargo:rustc-link-lib=dylib=rdkitcffi");
-    
+
     // Rebuild if header changes
     println!("cargo:rerun-if-changed=include/cffiwrapper.h");
-    
+
     // Set up library path for tests and run
     println!("cargo:rustc-env=LD_LIBRARY_PATH={}", shared_lib_dir);
 
