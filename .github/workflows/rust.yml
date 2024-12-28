@@ -28,8 +28,9 @@ jobs:
           wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.tar.gz
           tar xzf boost_1_83_0.tar.gz
           cd boost_1_83_0
+          echo "using gcc : : : <cxxflags>-fPIC ;" > user-config.jam
           ./bootstrap.sh --with-libraries=serialization,system,iostreams
-          ./b2 link=static runtime-link=shared threading=multi
+          ./b2 link=static runtime-link=shared threading=multi cxxflags="-fPIC" cflags="-fPIC"
           cd ..
 
       # Build RDKit with static Boost
@@ -52,7 +53,8 @@ jobs:
             -DDOWNLOAD_INCHI_DEP=ON \
             -DBoost_USE_STATIC_LIBS=ON \
             -DBOOST_ROOT=$GITHUB_WORKSPACE/boost_1_83_0 \
-            -DBoost_NO_SYSTEM_PATHS=ON
+            -DBoost_NO_SYSTEM_PATHS=ON \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
           make -j 2 cffi_test
 
       # Set up environment variables and copy libraries
