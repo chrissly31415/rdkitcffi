@@ -27,29 +27,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Install build dependencies
       - name: Setup build environment
         run: |
           sudo apt-get update
           sudo apt-get install -y git g++ gcc wget make cmake libboost-all-dev libfreetype6-dev liblzma-dev
 
-      # Build Boost static libraries
-      - name: Build Boost
-        run: |
-          wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.tar.gz
-          tar xzf boost_1_83_0.tar.gz
-          cd boost_1_83_0
-          echo "using gcc : : : <cxxflags>-fPIC ;" > user-config.jam
-          ./bootstrap.sh --with-libraries=serialization,system,iostreams
-          ./b2 link=static runtime-link=shared threading=multi cxxflags="-fPIC" cflags="-fPIC"
-          cd ..
-
-      # Build RDKit with static Boost
-      - name: Build RDKit
+      - name: Clone main RDKit repo
         run: |
           git clone https://github.com/rdkit/rdkit.git --branch Release_2024_09 --single-branch rdkit --depth=1
-          cd rdkit
-          mkdir build && cd build
+
+      - name: Configure build (Run CMake)
+        run: |
+          cd rdkit && mkdir build && cd build
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DRDK_BUILD_CPP_TESTS=OFF \
@@ -61,28 +50,35 @@ jobs:
             -DRDK_BUILD_THREADSAFE_SSS=ON \
             -DRDK_TEST_MULTITHREADED=ON \
             -DRDK_BUILD_CFFI_LIB=ON \
-            -DDOWNLOAD_INCHI_DEP=ON \
-            -DBoost_USE_STATIC_LIBS=ON \
-            -DBOOST_ROOT=$GITHUB_WORKSPACE/boost_1_83_0 \
-            -DBoost_NO_SYSTEM_PATHS=ON
+            -DRDK_USE_BOOST_SERIALIZATION=OFF \
+            -DRDK_USE_BOOST_IOSTREAMS=OFF \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+
+      - name: Build
+        run: |
+          cd rdkit/build
           make -j 2 cffi_test
 
-      # Set up environment variables and copy libraries
-      - name: Setup RDKit environment
+      - name: Run tests
         run: |
-          echo "RDBASE=$GITHUB_WORKSPACE/rdkit" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/rdkit/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-          
-          # Create directory structure
-          mkdir -p $GITHUB_WORKSPACE/rdkitcffi_linux/linux-64
-          
-          # Copy RDKit CFFI library
-          cp rdkit/build/lib/librdkitcffi.so.1.* $GITHUB_WORKSPACE/rdkitcffi_linux/linux-64/
-          cd $GITHUB_WORKSPACE/rdkitcffi_linux/linux-64
-          ln -s librdkitcffi.so.1.* librdkitcffi.so
-          ln -s librdkitcffi.so.1.* librdkitcffi.so.1
+          cd rdkit
+          export RDBASE=$PWD
+          export LD_LIBRARY_PATH=${RDBASE}/lib:${LD_LIBRARY_PATH}
+          echo "LD_LIBRARY_PATH: " $LD_LIBRARY_PATH
+          cd build
+          ./Code/MinimalLib/cffi_test
 
-      # Create and publish artifact
+      - name: Create build artifacts
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/rdkitcffi_linux/linux-64
+          echo "-----------------"
+          ls -l rdkit/build/lib/librdkitcffi.so.1.*
+          cd rdkit/build/lib
+          FNAME=$(ls librdkitcffi.so.1.*)
+          BUILD=$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
+          cp $FNAME $GITHUB_WORKSPACE/rdkitcffi_linux/linux-64/$FNAME.$BUILD
+          ls -l $GITHUB_WORKSPACE/rdkitcffi_linux/linux-64
+
       - name: Create artifact
         run: |
           cd $GITHUB_WORKSPACE
@@ -92,7 +88,7 @@ jobs:
         if: github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         with:
-          files: ${{ github.workspace }}/lib/rdkitcffi_linux.tar.gz
+          files: ${{ github.workspace }}/rdkitcffi_linux.tar.gz
           tag_name: rdkit-latest
           name: Latest RDKit CFFI Build
           body: Automated RDKit CFFI library build
