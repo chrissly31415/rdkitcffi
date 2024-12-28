@@ -14,7 +14,6 @@
 //!
 //! # Examples
 //!
-//! Basic usage:
 //!
 //! ```
 //! use rdkitcffi::Molecule;
@@ -137,18 +136,16 @@ use bindings::{
 /// Basic class, implementing most functionality as member functions of a molecule object
 
 pub struct Molecule {
-    pkl_size: *mut usize,
-    pkl_mol: *mut i8,
+    pkl_mol: *mut c_char,   // Pointer to the molecule data in C format
+    pkl_size: *mut usize,   // Pointer to size of molecule data
 }
 
 impl Drop for Molecule {
     fn drop(&mut self) {
-        unsafe {
-            free(self.pkl_size as *mut c_void);
-            free_ptr(self.pkl_mol);
-        }
+        self.free_memory();
     }
 }
+
 
 impl std::fmt::Debug for Molecule {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -160,17 +157,43 @@ impl std::fmt::Debug for Molecule {
 impl Molecule {
     /// Constructor returning an optional molecule
     pub fn new(input: &str, json_info: &str) -> Option<Molecule> {
-        let input_cstr = CString::new(input).unwrap();
-        let json_info = CString::new(json_info).unwrap();
-        let pkl_size: *mut usize = unsafe { libc::malloc(mem::size_of::<u64>()) as *mut usize };
-        let pkl_mol = unsafe { get_mol(input_cstr.as_ptr(), pkl_size, json_info.as_ptr()) };
         unsafe {
-            if pkl_mol.is_null() || *pkl_size == 0 {
+            // Convert Rust strings to C strings, handling NULL bytes
+            let input_cstr = match CString::new(input) {
+                Ok(s) => s,
+                Err(_) => return None,  // Return None if string contains NULL bytes
+            };
+            let json_cstr = match CString::new(json_info) {
+                Ok(s) => s,
+                Err(_) => return None,
+            };
+
+            // Allocate memory for size with proper alignment
+            let pkl_size = libc::malloc(mem::size_of::<usize>()) as *mut usize;
+            if pkl_size.is_null() {
+                return None;  // Return None if allocation fails
+            }
+
+            // Get molecule pointer from RDKit
+            let pkl_mol = get_mol(
+                input_cstr.as_ptr(),    // Convert CString to raw pointer
+                pkl_size,               // Pass pointer to size
+                json_cstr.as_ptr(),     // Convert CString to raw pointer
+            );
+            
+            // Comprehensive error checking
+            if pkl_mol.is_null() || unsafe { *pkl_size == 0 } {
+                // Clean up allocated memory if molecule creation fails
+                if !pkl_size.is_null() {
+                    free(pkl_size as *mut c_void);
+                }
                 return None;
             }
+
+            Some(Molecule { pkl_mol, pkl_size })
         }
-        Some(Molecule { pkl_size, pkl_mol })
     }
+
     /// Constructor returning Molecule, panics if None
     pub fn get_mol(input: &str, json_info: &str) -> Molecule {
         let input_cstr = CString::new(input).unwrap();
@@ -590,6 +613,21 @@ impl Molecule {
         }
         return Some(Molecule { pkl_size, pkl_mol });
     }
+
+    fn free_memory(&mut self) {
+        unsafe {
+            // Free molecule data if pointer is not null
+            if !self.pkl_mol.is_null() {
+                free_ptr(self.pkl_mol);             // Use RDKit's free function
+                self.pkl_mol = std::ptr::null_mut(); // Null the pointer to prevent use-after-free
+            }
+            // Free size data if pointer is not null
+            if !self.pkl_size.is_null() {
+                free(self.pkl_size as *mut c_void);  // Use libc free
+                self.pkl_size = std::ptr::null_mut(); // Null the pointer
+            }
+        }
+    }
 }
 
 /// read a classical .smi file
@@ -677,13 +715,38 @@ impl Iterator for SDIterator {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JsonBase {
-    pub commonchem: HashMap<String, i32>,
-    pub molecules: Vec<JsonMolecule>,
+    pub rdkitjson: VersionInfo,
     pub defaults: RdkitDefaults,
+    pub molecules: Vec<JsonMolecule>,
 }
 
-/// This implements the commom chem json structure:
-/// see also: [https://github.com/CommonChem/CommonChem](https://github.com/CommonChem/CommonChem)
+#[derive(Serialize, Deserialize, Debug)]
+pub struct VersionInfo {
+    pub version: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RdkitDefaults {
+    pub atom: AtomDefaults,
+    pub bond: BondDefaults,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AtomDefaults {
+    pub z: i32,
+    pub impHs: i32,
+    pub chg: i32,
+    pub nRad: i32,
+    pub isotope: i32,
+    pub stereo: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct BondDefaults {
+    pub bo: i32,
+    pub stereo: String,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JsonMolecule {
     #[serde(default)]
@@ -699,12 +762,6 @@ pub struct JsonMolecule {
 pub struct JsonConformer {
     pub coords: Vec<Vec<f32>>,
     dim: i32,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct RdkitDefaults {
-    atom: JsonAtom,
-    bond: JsonBond,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

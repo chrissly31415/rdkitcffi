@@ -1,18 +1,26 @@
 extern crate rdkitcffi;
-use rdkitcffi::bindings::{disable_logging, enable_logging, version};
+use rdkitcffi::bindings::{disable_logging, enable_logging, free_ptr, version};
 use rdkitcffi::{
     jsonfrom_string, read_sdfile, read_sdfile_unwrap, read_smifile_unwrap, JsonMolecule, Molecule,
 };
 use serde_json::json;
+use std::ffi::CStr;
+
 
 #[test]
 fn basics() {
     unsafe {
         enable_logging();
-        println!("Version: {:?}", version());
+        let version_str = version();
+        println!(
+            "Version: {:?}",
+            CStr::from_ptr(version_str).to_str().unwrap()
+        );
+        free_ptr(version_str);
         disable_logging();
-    }
+    }   
 }
+
 #[test]
 fn smiles2descriptors() {
     let orig_smiles = "CCCN";
@@ -23,6 +31,7 @@ fn smiles2descriptors() {
     assert_eq!(nheavy, 4);
     let nrot = desc.get("NumRotatableBonds").unwrap().round() as i32;
     assert_eq!(nrot, 1);
+    // Molecule will be dropped here, which should clean up resources
 }
 
 #[test]
@@ -163,10 +172,11 @@ fn molblock_from_smiles_via_pkl() {
 
 #[test]
 fn get_json_via_pkl() {
+    let expected = r#"{"rdkitjson":{"version":11},"defaults":{"atom":{"z":6,"impHs":0,"chg":0,"nRad":0,"isotope":0,"stereo":"unspecified"},"bond":{"bo":1,"stereo":"unspecified"}},"molecules":[{"atoms":[{"z":8,"impHs":1},{"impHs":2},{"z":8,"impHs":1}],"bonds":[{"atoms":[0,1]},{"atoms":[1,2]}],"extensions":[{"name":"rdkitRepresentation","formatVersion":2,"toolkitVersion":"2024.09.4"}]}]}"#;
     let orig_smiles = "OCO";
     let mol = Molecule::new(orig_smiles, "").unwrap();
     println!("json:    {}", mol.get_json(""));
-    assert_eq!(mol.get_json(""),"{\"commonchem\":{\"version\":10},\"defaults\":{\"atom\":{\"z\":6,\"impHs\":0,\"chg\":0,\"nRad\":0,\"isotope\":0,\"stereo\":\"unspecified\"},\"bond\":{\"bo\":1,\"stereo\":\"unspecified\"}},\"molecules\":[{\"atoms\":[{\"z\":8,\"impHs\":1},{\"impHs\":2},{\"z\":8,\"impHs\":1}],\"bonds\":[{\"atoms\":[0,1]},{\"atoms\":[1,2]}],\"extensions\":[{\"name\":\"rdkitRepresentation\",\"formatVersion\":2,\"toolkitVersion\":\"2021.09.11\"}]}]}");
+    assert_eq!(mol.get_json(""), expected);
 }
 #[test]
 fn get_json_molecule() {
@@ -186,13 +196,15 @@ fn jsonmolecule_from_smiles() {
 }
 #[test]
 fn json_str_from_smiles() {
+    let expected = r#"{"rdkitjson":{"version":11},"defaults":{"atom":{"z":6,"impHs":0,"chg":0,"nRad":0,"isotope":0,"stereo":"unspecified"},"bond":{"bo":1,"stereo":"unspecified"}},"molecules":[{"atoms":[{"impHs":3},{"impHs":2},{"impHs":2},{"z":53}],"bonds":[{"atoms":[0,1]},{"atoms":[1,2]},{"atoms":[2,3]}],"extensions":[{"name":"rdkitRepresentation","formatVersion":2,"toolkitVersion":"2024.09.4"}]}]}"#;
     let json_str = jsonfrom_string("CCCI", "");
-    assert_eq!(json_str,"{\"commonchem\":{\"version\":10},\"defaults\":{\"atom\":{\"z\":6,\"impHs\":0,\"chg\":0,\"nRad\":0,\"isotope\":0,\"stereo\":\"unspecified\"},\"bond\":{\"bo\":1,\"stereo\":\"unspecified\"}},\"molecules\":[{\"atoms\":[{\"impHs\":3},{\"impHs\":2},{\"impHs\":2},{\"z\":53}],\"bonds\":[{\"atoms\":[0,1]},{\"atoms\":[1,2]},{\"atoms\":[2,3]}],\"extensions\":[{\"name\":\"rdkitRepresentation\",\"formatVersion\":2,\"toolkitVersion\":\"2021.09.11\"}]}]}");
+    assert_eq!(json_str, expected);
 }
 #[test]
 fn json_str_from_sdf() {
+    let expected = r#"{"rdkitjson":{"version":11},"defaults":{"atom":{"z":6,"impHs":0,"chg":0,"nRad":0,"isotope":0,"stereo":"unspecified"},"bond":{"bo":1,"stereo":"unspecified"}},"molecules":[{"name":"","atoms":[{"impHs":3},{"z":8},{"impHs":2},{"impHs":1},{"impHs":1},{},{"impHs":1}],"bonds":[{"atoms":[0,1]},{"atoms":[1,2]},{"atoms":[2,3]},{"bo":2,"atoms":[3,4],"stereo":"either"},{"atoms":[4,5]},{"bo":3,"atoms":[5,6]}],"conformers":[{"dim":2,"coords":[[0.0,0.0],[1.299,0.75],[2.5981,-0.0],[3.8971,0.75],[5.1962,-0.0],[6.4952,0.75],[7.7942,1.5]]}],"extensions":[{"name":"rdkitRepresentation","formatVersion":2,"toolkitVersion":"2024.09.4"}]}]}"#;
     let json_str = jsonfrom_string("\n     RDKit          2D\n\n  7  6  0  0  0  0  0  0  0  0999 V2000\n    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    1.2990    0.7500    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n    2.5981   -0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    3.8971    0.7500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    5.1962   -0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    6.4952    0.7500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    7.7942    1.5000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\n  2  3  1  0\n  3  4  1  0\n  4  5  2  3\n  5  6  1  0\n  6  7  3  0\nM  END\n", "");
-    assert_eq!(json_str,"{\"commonchem\":{\"version\":10},\"defaults\":{\"atom\":{\"z\":6,\"impHs\":0,\"chg\":0,\"nRad\":0,\"isotope\":0,\"stereo\":\"unspecified\"},\"bond\":{\"bo\":1,\"stereo\":\"unspecified\"}},\"molecules\":[{\"name\":\"\",\"atoms\":[{\"impHs\":3},{\"z\":8},{\"impHs\":2},{\"impHs\":1},{\"impHs\":1},{},{\"impHs\":1}],\"bonds\":[{\"atoms\":[0,1]},{\"atoms\":[1,2]},{\"atoms\":[2,3]},{\"bo\":2,\"atoms\":[3,4],\"stereo\":\"either\"},{\"atoms\":[4,5]},{\"bo\":3,\"atoms\":[5,6]}],\"conformers\":[{\"dim\":2,\"coords\":[[0.0,0.0],[1.299,0.75],[2.5981,-0.0],[3.8971,0.75],[5.1962,-0.0],[6.4952,0.75],[7.7942,1.5]]}],\"extensions\":[{\"name\":\"rdkitRepresentation\",\"formatVersion\":2,\"toolkitVersion\":\"2021.09.11\"}]}]}");
+    assert_eq!(json_str, expected);
 }
 #[test]
 fn neutralize_ion() {
