@@ -24,11 +24,11 @@ jobs:
       - name: Setup build environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y git g++ gcc wget make cmake libboost-all-dev
+          sudo apt-get install -y git g++ gcc wget make cmake libboost-all-dev liblzma-dev freetype6-dev
 
       - name: Clone main RDKit repo
         run: |
-          git clone https://github.com/rdkit/rdkit.git --branch Release_2023_09 --single-branch rdkit --depth=1
+          git clone https://github.com/rdkit/rdkit.git --branch Release_2024_09 --single-branch rdkit --depth=1
 
       - name: Configure build (Run CMake)
         run: |
