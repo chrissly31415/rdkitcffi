@@ -133,10 +133,11 @@ mod tests {
             //get molecule as json object
             let rdkit_json_cchar = get_json(pkl_mol, *pkl_size, add_json.as_ptr());
             let mol_json_str = CStr::from_ptr(rdkit_json_cchar).to_str().unwrap();
+            println!("{}", mol_json_str);
             let rdkit_json_object: JsonBase =
                 serde_json::from_str(mol_json_str).expect("Wrong JSON format!");
 
-            println!("{}", mol_json_str);
+            
 
             for k in rdkit_json_object.molecules.iter() {
                 println!("Name: {:?}\n\n", k.name);
