@@ -4,11 +4,10 @@ on:
   push:
     branches: 
       - "master"
-      - "your-branch"
+
   pull_request:
     branches: 
       - "master"
-      - "your-branch"
 
 env:
   CARGO_TERM_COLOR: always
