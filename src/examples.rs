@@ -137,8 +137,6 @@ mod tests {
             let rdkit_json_object: JsonBase =
                 serde_json::from_str(mol_json_str).expect("Wrong JSON format!");
 
-            
-
             for k in rdkit_json_object.molecules.iter() {
                 println!("Name: {:?}\n\n", k.name);
                 println!("Name: {:?}\n\n", k.extensions);

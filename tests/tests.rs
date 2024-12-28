@@ -6,7 +6,6 @@ use rdkitcffi::{
 use serde_json::json;
 use std::ffi::CStr;
 
-
 #[test]
 fn basics() {
     unsafe {
@@ -18,7 +17,7 @@ fn basics() {
         );
         free_ptr(version_str);
         disable_logging();
-    }   
+    }
 }
 
 #[test]

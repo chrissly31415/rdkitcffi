@@ -136,8 +136,8 @@ use bindings::{
 /// Basic class, implementing most functionality as member functions of a molecule object
 
 pub struct Molecule {
-    pkl_mol: *mut c_char,   // Pointer to the molecule data in C format
-    pkl_size: *mut usize,   // Pointer to size of molecule data
+    pkl_mol: *mut c_char, // Pointer to the molecule data in C format
+    pkl_size: *mut usize, // Pointer to size of molecule data
 }
 
 impl Drop for Molecule {
@@ -145,7 +145,6 @@ impl Drop for Molecule {
         self.free_memory();
     }
 }
-
 
 impl std::fmt::Debug for Molecule {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -161,7 +160,7 @@ impl Molecule {
             // Convert Rust strings to C strings, handling NULL bytes
             let input_cstr = match CString::new(input) {
                 Ok(s) => s,
-                Err(_) => return None,  // Return None if string contains NULL bytes
+                Err(_) => return None, // Return None if string contains NULL bytes
             };
             let json_cstr = match CString::new(json_info) {
                 Ok(s) => s,
@@ -171,16 +170,16 @@ impl Molecule {
             // Allocate memory for size with proper alignment
             let pkl_size = libc::malloc(mem::size_of::<usize>()) as *mut usize;
             if pkl_size.is_null() {
-                return None;  // Return None if allocation fails
+                return None; // Return None if allocation fails
             }
 
             // Get molecule pointer from RDKit
             let pkl_mol = get_mol(
-                input_cstr.as_ptr(),    // Convert CString to raw pointer
-                pkl_size,               // Pass pointer to size
-                json_cstr.as_ptr(),     // Convert CString to raw pointer
+                input_cstr.as_ptr(), // Convert CString to raw pointer
+                pkl_size,            // Pass pointer to size
+                json_cstr.as_ptr(),  // Convert CString to raw pointer
             );
-            
+
             // Comprehensive error checking
             if pkl_mol.is_null() || unsafe { *pkl_size == 0 } {
                 // Clean up allocated memory if molecule creation fails
@@ -618,12 +617,12 @@ impl Molecule {
         unsafe {
             // Free molecule data if pointer is not null
             if !self.pkl_mol.is_null() {
-                free_ptr(self.pkl_mol);             // Use RDKit's free function
+                free_ptr(self.pkl_mol); // Use RDKit's free function
                 self.pkl_mol = std::ptr::null_mut(); // Null the pointer to prevent use-after-free
             }
             // Free size data if pointer is not null
             if !self.pkl_size.is_null() {
-                free(self.pkl_size as *mut c_void);  // Use libc free
+                free(self.pkl_size as *mut c_void); // Use libc free
                 self.pkl_size = std::ptr::null_mut(); // Null the pointer
             }
         }
