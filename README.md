@@ -1,4 +1,5 @@
 [![Rust](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rust.yml/badge.svg)](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rust.yml)
+[![RDKit CFFI Build](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rdkit_cffi.yml/badge.svg)](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rdkit_cffi.yml)
 
 # rdkitcffi
 
@@ -6,13 +7,9 @@ This is an &#128679; experimental  &#128679; rust wrapper for some functionality
 
 It makes use of its CFFI interface, see also this [blog post](https://greglandrum.github.io/rdkit-blog/technical/2021/05/01/rdkit-cffi-part1.html).
  
-Use it at your own risk, its not recommended yet for productive use :-)  
-
 Only a limited functionality is being exposed via cffi by RDKit and not all of this is available yet via this interface. Have a look at the examples below and the test functions.  
-
-There are dependencies to specific version of boost and rdkit (some headers & the shared lib), see also the installation section.  
-The rdkitcffi.so shared library is downloaded during build from [azure](https://github.com/greglandrum/rdkit-minimallib-build). This could be done in a better and more dynamic way.
-
+ 
+The rust wrapper is linked against a pre-built RDKit shared library (MinimalLib), which is stored as an artifact created via github actions and is automatically downloaded from this [location](https://github.com/chrissly31415/rdkitcffi/releases/download/rdkit-latest/rdkitcffi_linux.tar.gz) during build. 
 Currently, only linux is supported.  
 
 Please note, that there is also a cargo crate providing [low level wrapper](https://crates.io/crates/rdkit-sys) to rdkit.
