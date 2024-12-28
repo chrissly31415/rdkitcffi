@@ -1,0 +1,85 @@
+name: RDKit CFFI Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with debug logging'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git g++ gcc wget make cmake libboost-all-dev
+
+      - name: Clone main RDKit repo
+        run: |
+          git clone https://github.com/rdkit/rdkit.git --branch Release_2021_09 --single-branch rdkit --depth=1
+
+      - name: Configure build (Run CMake)
+        run: |
+          cd rdkit && mkdir build && cd build
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DRDK_BUILD_CPP_TESTS=OFF \
+            -DRDK_BUILD_PYTHON_WRAPPERS=OFF \
+            -DRDK_BUILD_COORDGEN_SUPPORT=ON \
+            -DRDK_BUILD_MAEPARSER_SUPPORT=ON \
+            -DRDK_OPTIMIZE_POPCNT=ON \
+            -DRDK_BUILD_INCHI_SUPPORT=ON \
+            -DRDK_BUILD_THREADSAFE_SSS=ON \
+            -DRDK_TEST_MULTITHREADED=ON \
+            -DRDK_BUILD_CFFI_LIB=ON \
+            -DRDK_USE_BOOST_SERIALIZATION=OFF \
+            -DRDK_USE_BOOST_IOSTREAMS=OFF \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+
+      - name: Build
+        run: |
+          cd rdkit/build
+          make -j 2 cffi_test
+
+      - name: Run tests
+        run: |
+          cd rdkit
+          export RDBASE=$PWD
+          export LD_LIBRARY_PATH=${RDBASE}/lib:${LD_LIBRARY_PATH}
+          echo "LD_LIBRARY_PATH: " $LD_LIBRARY_PATH
+          cd build
+          ./Code/MinimalLib/cffi_test
+
+      - name: Create build artifacts
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/rdkitcffi_linux/linux-64
+          echo "-----------------"
+          ls -l rdkit/build/lib/librdkitcffi.so.1.*
+          cd rdkit/build/lib
+          FNAME=$(ls librdkitcffi.so.1.*)
+          BUILD=$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
+          cp $FNAME $GITHUB_WORKSPACE/rdkitcffi_linux/linux-64/$FNAME.$BUILD
+          ls -l $GITHUB_WORKSPACE/rdkitcffi_linux/linux-64
+
+      - name: Create artifact
+        run: |
+          cd $GITHUB_WORKSPACE
+          tar czf rdkitcffi_linux.tar.gz rdkitcffi_linux/
+
+      - name: Create Release
+        if: github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ github.workspace }}/rdkitcffi_linux.tar.gz
+          tag_name: rdkit-latest
+          name: Latest RDKit CFFI Build
+          body: Automated RDKit CFFI library build
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
