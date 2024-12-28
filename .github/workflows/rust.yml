@@ -1,6 +1,13 @@
 name: Rust
 
 on:
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with debug logging'
+        required: false
+        default: false
+        type: boolean
   push:
     branches: 
       - "master"
