@@ -28,7 +28,7 @@ jobs:
 
       - name: Clone main RDKit repo
         run: |
-          git clone https://github.com/rdkit/rdkit.git --branch Release_2024_09 --single-branch rdkit --depth=1
+          git clone https://github.com/rdkit/rdkit.git --branch Release_2023_09 --single-branch rdkit --depth=1
 
       - name: Configure build (Run CMake)
         run: |
@@ -51,7 +51,12 @@ jobs:
       - name: Build
         run: |
           cd rdkit/build
-          make -j 2 cffi_test
+          make VERBOSE=1 -j 2 cffi_test
+          # If build fails, show the error log
+          if [ $? -ne 0 ]; then
+            echo "Build failed. Showing last 100 lines of error log:"
+            cat CMakeFiles/CMakeError.log | tail -n 100
+          fi
 
       - name: Run tests
         run: |
