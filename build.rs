@@ -1,3 +1,4 @@
+//Some useful links:
 //https://rust-lang.github.io/rust-bindgen/tutorial-3.html
 //https://michael-f-bryan.github.io/rust-ffi-guide/
 //https://medium.com/dwelo-r-d/using-c-libraries-in-rust-13961948c72a
@@ -6,19 +7,12 @@
 
 extern crate bindgen;
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 
 use bindgen::CargoCallbacks;
 
-//use std::env;
-
-//compilation for rdkit commands
-//cmake -DRDK_BUILD_MINIMAL_LIB=ON -DRDK_BUILD_CFFI_LIB=ON  -DRDK_BUILD_INCHI_SUPPORT=ON -DRDK_BUILD_PYTHON_WRAPPERS=OFF ..
-//currently we cannot compile it directory from a submodule approach via a cmake crate because of the additional dependencies e.g. boost
-//do not use lib and main both, as -l gets only used for library
-
-//one need to set LD_LIBRARY_PATH manually if binary is called without cargo
+//one may need to set LD_LIBRARY_PATH manually if binary is called without cargo
 //e.g. export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/username/calc/rdkitcffi/lib/rdkitcffi_linux/linux-64
 
 fn download_rdkit_artifact() -> Option<String> {
