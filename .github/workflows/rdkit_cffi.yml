@@ -1,4 +1,4 @@
-name: RDKit CFFI Build
+name: Build RDKit CFFI
 
 on:
   workflow_dispatch:

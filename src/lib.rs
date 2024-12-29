@@ -19,7 +19,7 @@
 //! use rdkitcffi::Molecule;
 //!
 //! let smiles = "OCCC#CO";
-//! let mol = Molecule::new(smiles, "").unwrap();
+//! let mol = Molecule::new(smiles).unwrap();
 //!
 //! let natoms = mol.get_numatoms();
 //! ```
@@ -30,7 +30,7 @@
 //! use rdkitcffi::Molecule;
 //!
 //! let json_args = "{\"removeHs\":false,\"canonical\":false}";
-//! let mol = Molecule::new("c1cc(O[H])ccc1", json_args).unwrap();
+//! let mol = Molecule::new_with_args("c1cc(O[H])ccc1", json_args).unwrap();
 //! ```
 //!
 //! Working with SD files and filtering invalid molecules (=None):
@@ -49,7 +49,7 @@
 //! ```
 //! use rdkitcffi::Molecule;
 //!
-//! let result = Molecule::new("OCCO", "");
+//! let result = Molecule::new("OCCO");
 //! match result {
 //!    Some(m) => println!("Result: {:?}", m),
 //!    None => println!("Could not get molecule!"),
@@ -62,7 +62,7 @@
 //! ```
 //! use rdkitcffi::Molecule;
 //!
-//! let mol = Molecule::new("OCCO", "").unwrap();
+//! let mol = Molecule::new("OCCO").unwrap();
 //! println!("json: {:?}", mol.get_json(""));
 //!
 //! ```
@@ -72,7 +72,7 @@
 //! ```
 //! use rdkitcffi::Molecule;
 //!
-//! let mut mol = Molecule::new("C(C(=O)[O-])[NH3+]", "").unwrap();
+//! let mut mol = Molecule::new("C(C(=O)[O-])[NH3+]").unwrap();
 //! mol.neutralize("");
 //! println!("{:?}", mol.get_smiles(""));
 //!
@@ -83,7 +83,7 @@
 //! ```
 //! use rdkitcffi::Molecule;
 //!
-//! let mol = Molecule::new("CCCN", "").unwrap();
+//! let mol = Molecule::new("CCCN").unwrap();
 //! let desc = mol.get_descriptors_as_dict();
 //! let nrot = desc.get("NumRotatableBonds");
 //! let logp = desc.get("CrippenClogP");
@@ -133,6 +133,10 @@ use bindings::{
     get_rdkit_fp_as_bytes,
 };
 
+pub mod json;
+// Re-export commonly used types from json module
+pub use json::{JsonAtom, JsonBase, JsonBond, JsonConformer, JsonMolecule};
+
 /// Basic class, implementing most functionality as member functions of a molecule object
 
 pub struct Molecule {
@@ -154,8 +158,13 @@ impl std::fmt::Debug for Molecule {
 }
 
 impl Molecule {
-    /// Constructor returning an optional molecule
-    pub fn new(input: &str, json_info: &str) -> Option<Molecule> {
+    /// Constructor returning an optional molecule with default JSON settings
+    pub fn new(input: &str) -> Option<Molecule> {
+        Self::new_with_args(input, "")
+    }
+
+    /// Constructor returning an optional molecule with custom JSON configuration
+    pub fn new_with_args(input: &str, json_info: &str) -> Option<Molecule> {
         unsafe {
             // Convert Rust strings to C strings, handling NULL bytes
             let input_cstr = match CString::new(input) {
@@ -640,7 +649,7 @@ pub fn read_smifile(smi_file: &str) -> Vec<Option<Molecule>> {
             mol_list.push(None);
             continue;
         };
-        let mol_opt = Molecule::new(s_mod, "");
+        let mol_opt = Molecule::new(s_mod);
         mol_list.push(mol_opt);
     }
     mol_list
@@ -648,7 +657,7 @@ pub fn read_smifile(smi_file: &str) -> Vec<Option<Molecule>> {
 
 /// read a classical .smi file, filter molecules which are none
 pub fn read_smifile_unwrap(smi_file: &str) -> Vec<Molecule> {
-    let mut mol_opt_list: Vec<Option<Molecule>> = crate::read_smifile(smi_file);
+    let mol_opt_list: Vec<Option<Molecule>> = crate::read_smifile(smi_file);
     let mol_list: Vec<Molecule> = mol_opt_list.into_iter().filter_map(|m| m).collect();
     mol_list
 }
@@ -658,19 +667,13 @@ pub fn read_sdfile(sd_file: &str) -> Vec<Option<Molecule>> {
     let sd_file = read_to_string(sd_file).expect("Could not load file.");
     let mut mol_list: Vec<Option<Molecule>> = Vec::new();
     let molblock_list: Vec<&str> = sd_file.split("$$$$").collect();
-    for (i, s) in molblock_list.iter().enumerate() {
+    for (_i, s) in molblock_list.iter().enumerate() {
         let s_mod = s.trim();
         if s_mod.len() == 0 {
             mol_list.push(None);
             continue;
         };
-        let mut mol_opt = Molecule::new(s_mod, "");
-
-        // this avoids hard to catch exceptions later on...
-        //match mol_opt.as_mut() {
-        //    Some(mut mol_opt) => {mol_opt.cleanup(""); Some(mol_opt)},
-        //    None => None,
-        //};
+        let mol_opt = Molecule::new(s_mod);
         mol_list.push(mol_opt);
     }
     mol_list
@@ -678,7 +681,7 @@ pub fn read_sdfile(sd_file: &str) -> Vec<Option<Molecule>> {
 
 /// read a classical .sdf file, filter molecules which are none
 pub fn read_sdfile_unwrap(sd_file: &str) -> Vec<Molecule> {
-    let mut mol_opt_list: Vec<Option<Molecule>> = crate::read_sdfile(sd_file);
+    let mol_opt_list: Vec<Option<Molecule>> = crate::read_sdfile(sd_file);
     let mol_list: Vec<Molecule> = mol_opt_list.into_iter().filter_map(|m| m).collect();
     mol_list
 }
@@ -707,137 +710,7 @@ impl Iterator for SDIterator {
         if s_mod.len() == 0 {
             self.next(); //last line
         };
-        let mol_opt = Molecule::new(&s_mod, "");
+        let mol_opt = Molecule::new(&s_mod);
         Some(mol_opt)
     }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct JsonBase {
-    pub rdkitjson: VersionInfo,
-    pub defaults: RdkitDefaults,
-    pub molecules: Vec<JsonMolecule>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct VersionInfo {
-    pub version: i32,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct RdkitDefaults {
-    pub atom: AtomDefaults,
-    pub bond: BondDefaults,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct AtomDefaults {
-    pub z: i32,
-    pub impHs: i32,
-    pub chg: i32,
-    pub nRad: i32,
-    pub isotope: i32,
-    pub stereo: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct BondDefaults {
-    pub bo: i32,
-    pub stereo: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct JsonMolecule {
-    #[serde(default)]
-    pub name: String,
-    pub atoms: Vec<JsonAtom>,
-    pub bonds: Vec<JsonBond>,
-    #[serde(default)]
-    pub conformers: Vec<JsonConformer>,
-    pub extensions: Vec<Extensions>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct JsonConformer {
-    pub coords: Vec<Vec<f32>>,
-    dim: i32,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Extensions {
-    name: String,
-    formatVersion: i32,
-    toolkitVersion: String,
-    #[serde(default)]
-    aromaticAtoms: Vec<i32>,
-    #[serde(default)]
-    aromaticBonds: Vec<i32>,
-    #[serde(default)]
-    atomRings: Vec<Vec<i32>>,
-    #[serde(default)]
-    cipCodes: Vec<Value>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct JsonAtom {
-    #[serde(default)]
-    chg: i32,
-    #[serde(default)]
-    impHs: i32,
-    #[serde(default)]
-    isotope: i32,
-    #[serde(default)]
-    nRad: i32,
-    #[serde(default)]
-    stereo: String,
-    #[serde(default = "z_default")]
-    z: i32,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct JsonBond {
-    #[serde(default)]
-    atoms: Vec<i32>,
-    #[serde(default)]
-    bo: i32,
-    #[serde(default = "stereo_default")]
-    stereo: String,
-}
-
-const Z_DEFAULT: i32 = 6;
-fn z_default() -> i32 {
-    Z_DEFAULT
-}
-
-fn stereo_default() -> String {
-    String::from("unspecified")
-}
-
-impl JsonMolecule {
-    ///Create new molecule from smiles, SD file or json
-    pub fn new(self, molstring: &str) -> JsonMolecule {
-        JsonMolecule::json_mol_from_string(molstring, "")
-    }
-
-    pub fn json_mol_from_string(molstring: &str, json_info: &str) -> JsonMolecule {
-        let json_str = jsonfrom_string(molstring, json_info);
-        JsonMolecule::json_mol_from_json(&json_str)
-    }
-
-    pub fn json_mol_from_smiles(smiles: &str) -> JsonMolecule {
-        JsonMolecule::json_mol_from_string(smiles, "")
-    }
-
-    pub fn json_mol_from_json(json_str: &str) -> JsonMolecule {
-        let rdkit_json: JsonBase = serde_json::from_str(&json_str).expect("Wrong JSON format!?");
-        let mol = serde_json::to_string(&rdkit_json.molecules[0]).unwrap();
-        serde_json::from_str(&mol).expect("Wrong JSON format!?")
-    }
-}
-
-pub fn jsonfrom_string(input: &str, json_info: &str) -> String {
-    //let (pkl_mol, pkl_size) = Molecule::PklFromString(input, json_info);
-    let pkl_mol = Molecule::new(input, json_info).unwrap();
-    let mol_json_str = pkl_mol.get_json(json_info);
-    mol_json_str.to_owned()
 }

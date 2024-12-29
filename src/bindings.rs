@@ -231,6 +231,7 @@ unsafe extern "C" {
         template_pkl: *const ::std::os::raw::c_char,
         template_sz: usize,
         details_json: *const ::std::os::raw::c_char,
+        match_json: *mut *mut ::std::os::raw::c_char,
     ) -> ::std::os::raw::c_short;
 }
 unsafe extern "C" {
@@ -240,8 +241,8 @@ unsafe extern "C" {
     pub fn version() -> *mut ::std::os::raw::c_char;
 }
 unsafe extern "C" {
-    pub fn enable_logging();
+    pub fn enable_logging() -> ::std::os::raw::c_short;
 }
 unsafe extern "C" {
-    pub fn disable_logging();
+    pub fn disable_logging() -> ::std::os::raw::c_short;
 }
