@@ -18,7 +18,7 @@ Please note, that there is also a cargo crate providing [low level wrapper](http
 
  Basic usage:
 
- ```
+ ```rust
  use rdkitcffi::Molecule;
 
  let smiles = "OCCC#CO";
@@ -29,7 +29,7 @@ Please note, that there is also a cargo crate providing [low level wrapper](http
  
  Additional arguments can be passed via json
 
- ```
+ ```rust
  use rdkitcffi::Molecule;
 
  let json_args = "{\"removeHs\":false,\"canonical\":false}";
@@ -38,7 +38,7 @@ Please note, that there is also a cargo crate providing [low level wrapper](http
 
  Working with SD files and filtering invalid molecules:
 
- ```
+ ```rust
 use rdkitcffi::{Molecule,read_sdfile};
  
  let mut mol_opt_list : Vec<Option<Molecule>>= read_sdfile("data/test.sdf");
@@ -49,7 +49,7 @@ use rdkitcffi::{Molecule,read_sdfile};
 
  Dealing with invalid molecules
 
- ```
+ ```rust
  use rdkitcffi::Molecule;
 
  let result = Molecule::new("OCCO");
@@ -62,7 +62,7 @@ use rdkitcffi::{Molecule,read_sdfile};
 
  Getting a JSON represenation (via serde_json):
 
- ```
+ ```rust
  use rdkitcffi::Molecule;
 
  let mol = Molecule::new("OCCO").unwrap();
@@ -72,7 +72,7 @@ use rdkitcffi::{Molecule,read_sdfile};
 
  Neutralizing a zwitterion
 
- ```
+ ```rust
  use rdkitcffi::Molecule;
 
  let mut mol = Molecule::new("C(C(=O)[O-])[NH3+]").unwrap();
@@ -83,7 +83,7 @@ use rdkitcffi::{Molecule,read_sdfile};
 
  Computing RDKit descriptors
 
- ```
+ ```rust
  use rdkitcffi::Molecule;
 
  let mol = Molecule::new("CCCN").unwrap();
@@ -95,7 +95,7 @@ use rdkitcffi::{Molecule,read_sdfile};
 
  Creating a polars dataframe:
 
- ```
+ ```rust
  use rdkitcffi::Molecule;
  use polars::prelude::*;
  use polars::df;
