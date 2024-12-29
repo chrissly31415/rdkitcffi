@@ -22,7 +22,7 @@ Please note, that there is also a cargo crate providing [low level wrapper](http
  use rdkitcffi::Molecule;
 
  let smiles = "OCCC#CO";
- let mol = Molecule::new(smiles, "").unwrap();
+ let mol = Molecule::new(smiles).unwrap();
 
  let natoms = mol.get_numatoms();
  ```
@@ -33,7 +33,7 @@ Please note, that there is also a cargo crate providing [low level wrapper](http
  use rdkitcffi::Molecule;
 
  let json_args = "{\"removeHs\":false,\"canonical\":false}";
- let mol = Molecule::new("c1cc(O[H])ccc1", json_args).unwrap();
+ let mol = Molecule::new_with_args("c1cc(O[H])ccc1", json_args).unwrap();
  ```
 
  Working with SD files and filtering invalid molecules:
@@ -52,7 +52,7 @@ use rdkitcffi::{Molecule,read_sdfile};
  ```
  use rdkitcffi::Molecule;
 
- let result = Molecule::new("OCCO", "");
+ let result = Molecule::new("OCCO");
  match result {
     Some(m) => println!("Result: {:?}", m),
     None => println!("Could not get molecule!"),
@@ -65,7 +65,7 @@ use rdkitcffi::{Molecule,read_sdfile};
  ```
  use rdkitcffi::Molecule;
 
- let mol = Molecule::new("OCCO", "").unwrap();
+ let mol = Molecule::new("OCCO").unwrap();
  println!("json: {:?}", mol.get_json(""));
 
  ```
@@ -75,7 +75,7 @@ use rdkitcffi::{Molecule,read_sdfile};
  ```
  use rdkitcffi::Molecule;
 
- let mut mol = Molecule::new("C(C(=O)[O-])[NH3+]", "").unwrap();
+ let mut mol = Molecule::new("C(C(=O)[O-])[NH3+]").unwrap();
  mol.neutralize("");
  println!("{:?}", mol.get_smiles(""));
 
@@ -86,7 +86,7 @@ use rdkitcffi::{Molecule,read_sdfile};
  ```
  use rdkitcffi::Molecule;
 
- let mol = Molecule::new("CCCN", "").unwrap();
+ let mol = Molecule::new("CCCN").unwrap();
  let desc = mol.get_descriptors_as_dict();
  let nrot = desc.get("NumRotatableBonds");
  let logp = desc.get("CrippenClogP");
@@ -108,12 +108,6 @@ use rdkitcffi::{Molecule,read_sdfile};
 
 ## Installation
 Currently only linux is supported.   
-In some cases you may have also to install some additional packages for installation:
-
-```
-sudo apt-get install build-essential
-sudo apt-get install libclang-dev
-```
 
 Download the repo:  
 
