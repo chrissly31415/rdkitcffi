@@ -90,6 +90,19 @@
 //!
 //! ```
 //!
+//! Generating a 3D coordinates
+//!
+//! ```
+//! use rdkitcffi::Molecule;
+//!
+//! let mut mol = Molecule::new("CCCN").unwrap();
+//! mol.add_hs();
+//! mol.set_3d_coords("");
+//! let coords: Vec<Vec<f32>> = mol.get_coords();
+//!
+//! ```
+//!
+//!
 //! Creating a polars dataframe:
 //!
 //! ```
@@ -104,12 +117,9 @@
 //! ```
 //!
 
-use serde::{Deserialize, Serialize};
-use serde_json::value::Value;
 use std::collections::HashMap;
 
 use std::ffi::{CStr, CString};
-use std::fmt::Debug;
 use std::fs::read_to_string;
 use std::mem;
 use std::os::raw::{c_char, c_void};
@@ -166,10 +176,9 @@ impl Molecule {
     /// Constructor returning an optional molecule with custom JSON configuration
     pub fn new_with_args(input: &str, json_info: &str) -> Option<Molecule> {
         unsafe {
-            // Convert Rust strings to C strings, handling NULL bytes
             let input_cstr = match CString::new(input) {
                 Ok(s) => s,
-                Err(_) => return None, // Return None if string contains NULL bytes
+                Err(_) => return None,
             };
             let json_cstr = match CString::new(json_info) {
                 Ok(s) => s,
@@ -190,7 +199,7 @@ impl Molecule {
             );
 
             // Comprehensive error checking
-            if pkl_mol.is_null() || unsafe { *pkl_size == 0 } {
+            if pkl_mol.is_null() || { *pkl_size == 0 } {
                 // Clean up allocated memory if molecule creation fails
                 if !pkl_size.is_null() {
                     free(pkl_size as *mut c_void);

@@ -93,6 +93,18 @@ use rdkitcffi::{Molecule,read_sdfile};
 
  ```
 
+ Generating 3D coordinates
+
+ ```rust
+ use rdkitcffi::Molecule;
+
+ let mut mol = Molecule::new("CO").unwrap();
+ mol.add_hs();
+ mol.set_3d_coords("");
+ let coords: Vec<Vec<f32>> = mol.get_coords();
+
+ ```
+
  Creating a polars dataframe:
 
  ```rust
