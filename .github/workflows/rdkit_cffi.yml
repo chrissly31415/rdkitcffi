@@ -1,4 +1,4 @@
-name: Build RDKit CFFI
+name: RDKit CFFI 2024.09
 
 on:
   workflow_dispatch:

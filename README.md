@@ -54,7 +54,7 @@ use rdkitcffi::{Molecule,read_sdfile};
 
  let result = Molecule::new("OCCO");
  match result {
-    Some(m) => println!("Result: {:?}", m),
+    Some(m) => println!("Molecule: {:?}", m),
     None => println!("Could not get molecule!"),
 };
  ```
