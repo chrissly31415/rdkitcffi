@@ -135,9 +135,17 @@ cargo build
 cargo test --lib  
 ```
 
+### Dynamic libraries
 After installation you may want to update your LD_LIBRARY_PATH in order to run binaries without cargo, e.g.:   
 
-export LD_LIBRARY_PATH=/home/username/rdkitcffi/lib/rdkitcffi_linux/linux-64/:$LD_LIBRARY_PATH  
+```
+export LD_LIBRARY_PATH=/home/username/rdkitcffi/lib/rdkitcffi_linux/linux-64/:$LD_LIBRARY_PATH
+```
+
+In case you are missing libboost-serialization libs:
+```
+sudo apt-get install -y libboost-all-dev
+```
 
 ## Using it in your project
 
