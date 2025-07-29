@@ -33,13 +33,13 @@ jobs:
             base-devel
             git
             cmake
-            boost
-            cairo
-            zlib
-            xz
-            gcc
-            make
-            pkg-config
+            mingw-w64-ucrt-x86_64-boost
+            mingw-w64-ucrt-x86_64-cairo
+            mingw-w64-ucrt-x86_64-zlib
+            mingw-w64-ucrt-x86_64-xz
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-make
+            mingw-w64-ucrt-x86_64-pkg-config
           pacboy: >-
             toolchain:p
 
