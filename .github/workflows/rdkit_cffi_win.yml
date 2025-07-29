@@ -24,6 +24,16 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      - name: Cache MSYS2 packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\msys64\var\cache\pacman\pkg
+            C:\msys64\var\lib\pacman\local
+          key: ${{ runner.os }}-msys2-packages-${{ hashFiles('**/rdkit_cffi_win.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-msys2-packages-
+
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
         with:
@@ -35,6 +45,7 @@ jobs:
             cmake
             mingw-w64-x86_64-boost
             mingw-w64-x86_64-cairo
+            mingw-w64-x86_64-freetype
             mingw-w64-x86_64-zlib
             mingw-w64-x86_64-bzip2
             mingw-w64-x86_64-xz
@@ -49,10 +60,23 @@ jobs:
         run: |
           git clone https://github.com/rdkit/rdkit.git --branch Release_2024_09 --single-branch rdkit --depth=1
 
+      - name: Cache CMake and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            rdkit/build/CMakeCache.txt
+            rdkit/build/CMakeFiles
+            rdkit/build/lib
+            rdkit/build/bin
+          key: ${{ runner.os }}-rdkit-build-${{ hashFiles('**/rdkit_cffi_win.yml') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-rdkit-build-${{ hashFiles('**/rdkit_cffi_win.yml') }}-
+            ${{ runner.os }}-rdkit-build-
+
       - name: Configure build (Run CMake)
         shell: msys2 {0}
         run: |
-          cd rdkit && mkdir build && cd build
+          cd rdkit && mkdir -p build && cd build
           cmake .. \
             -G 'Unix Makefiles' \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -81,6 +105,8 @@ jobs:
             -DRDK_USE_BOOST_IOSTREAMS=OFF \
             -DCAIRO_INCLUDE_DIR=/c/msys64/mingw64/include \
             -DCAIRO_LIBRARIES=/c/msys64/mingw64/lib/libcairo.dll.a \
+            -DFREETYPE_INCLUDE_DIRS=/c/msys64/mingw64/include/freetype2 \
+            -DFREETYPE_LIBRARY=/c/msys64/mingw64/lib/libfreetype.dll.a \
             -DZLIB_INCLUDE_DIR=/c/msys64/mingw64/include \
             -DZLIB_LIBRARY=/c/msys64/mingw64/lib/libz.dll.a \
             -DBZIP2_INCLUDE_DIR=/c/msys64/mingw64/include \
