@@ -1,0 +1,153 @@
+name: RDKit CFFI Windows 2024.09
+
+on:
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with debug logging'
+        required: false
+        default: false
+        type: boolean
+  # push:
+  #   branches:
+  #     - "**"
+  # pull_request:
+  #   branches:
+  #     - "**"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSYS2 and MinGW
+        run: |
+          # Download and install MSYS2
+          $msys2Url = "https://github.com/msys2/msys2-installer/releases/download/2024-01-13/msys2-x86_64-20240113.exe"
+          $msys2Installer = "$env:TEMP\msys2-installer.exe"
+          Invoke-WebRequest -Uri $msys2Url -OutFile $msys2Installer
+          
+          # Install MSYS2 silently with proper arguments
+          Start-Process -FilePath $msys2Installer -ArgumentList "--quiet", "--confirm-command", "--accept-messages" -Wait
+          
+          # Wait for installation to complete and add to PATH
+          Start-Sleep -Seconds 30
+          $env:PATH = "C:\msys64\usr\bin;C:\msys64\mingw64\bin;$env:PATH"
+          
+          # Update MSYS2 and install required packages
+          C:\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm --needed base-devel mingw-w64-x86_64-toolchain"
+          C:\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm --needed mingw-w64-x86_64-cmake mingw-w64-x86_64-boost mingw-w64-x86_64-cairo mingw-w64-x86_64-zlib mingw-w64-x86_64-xz mingw-w64-x86_64-gcc mingw-w64-x86_64-make mingw-w64-x86_64-git mingw-w64-x86_64-pkg-config"
+
+      - name: Clone main RDKit repo
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "git clone https://github.com/rdkit/rdkit.git --branch Release_2024_09 --single-branch rdkit --depth=1"
+
+      - name: Configure build (Run CMake)
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "
+          cd rdkit && mkdir build && cd build
+          cmake .. \
+            -G 'MSYS Makefiles' \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DRDK_INSTALL_INTREE=OFF \
+            -DRDK_INSTALL_STATIC_LIBS=OFF \
+            -DRDK_BUILD_CPP_TESTS=ON \
+            -DRDK_BUILD_COORDGEN_SUPPORT=ON \
+            -DRDK_BUILD_MAEPARSER_SUPPORT=ON \
+            -DRDK_OPTIMIZE_POPCNT=ON \
+            -DRDK_BUILD_TEST_GZIP=ON \
+            -DRDK_BUILD_FREESASA_SUPPORT=ON \
+            -DRDK_BUILD_AVALON_SUPPORT=ON \
+            -DRDK_BUILD_INCHI_SUPPORT=ON \
+            -DRDK_BUILD_CAIRO_SUPPORT=ON \
+            -DRDK_BUILD_CFFI_LIB=ON \
+            -DRDK_CFFI_STATIC=OFF \
+            -DRDK_BUILD_THREADSAFE_SSS=ON \
+            -DRDK_BUILD_SWIG_WRAPPERS=OFF \
+            -DRDK_SWIG_STATIC=OFF \
+            -DRDK_TEST_MULTITHREADED=ON \
+            -DRDK_INSTALL_DLLS_MSVC=ON \
+            -DRDK_BUILD_PYTHON_WRAPPERS=OFF \
+            -DRDK_BUILD_PGSQL=OFF \
+            -DRDK_PGSQL_STATIC=OFF \
+            -DCAIRO_INCLUDE_DIR=/c/msys64/mingw64/include \
+            -DCAIRO_LIBRARIES=/c/msys64/mingw64/lib/libcairo.dll.a \
+            -DCMAKE_INSTALL_PREFIX=/c/msys64/mingw64 \
+            -DCMAKE_INCLUDE_PATH='/c/msys64/mingw64/include;/c/msys64/mingw64/x86_64-w64-mingw32/include' \
+            -DCMAKE_LIBRARY_PATH='/c/msys64/mingw64/lib;/c/msys64/mingw64/x86_64-w64-mingw32/lib'
+          "
+
+      - name: Build
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "
+          cd rdkit/build
+          mingw32-make VERBOSE=1 -j 2 cffi_test
+          # If build fails, show the error log
+          if [ $? -ne 0 ]; then
+            echo 'Build failed. Showing last 100 lines of error log:'
+            cat CMakeFiles/CMakeError.log | tail -n 100
+            exit 1
+          fi
+          "
+
+      - name: Run tests
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "
+          cd rdkit
+          export RDBASE=\$PWD
+          export PATH=\${RDBASE}/build/lib:\$PATH
+          echo 'PATH: ' \$PATH
+          cd build
+          # Try different possible test executable locations
+          if [ -f './Code/MinimalLib/cffi_test.exe' ]; then
+            ./Code/MinimalLib/cffi_test.exe
+          elif [ -f './Code/MinimalLib/cffi_test' ]; then
+            ./Code/MinimalLib/cffi_test
+          else
+            echo 'Test executable not found. Looking for it:'
+            find . -name '*cffi_test*' -type f
+            exit 1
+          fi
+          "
+
+      - name: Create build artifacts
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "
+          mkdir -p \$GITHUB_WORKSPACE/rdkitcffi_windows/windows-64
+          echo '-----------------'
+          # Look for the DLL file with different possible names
+          if [ -f 'rdkit/build/lib/rdkitcffi.dll' ]; then
+            ls -l rdkit/build/lib/rdkitcffi.dll
+            cd rdkit/build/lib
+            BUILD=\$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
+            cp rdkitcffi.dll \$GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/rdkitcffi.dll.\$BUILD
+          elif [ -f 'rdkit/build/lib/librdkitcffi.dll' ]; then
+            ls -l rdkit/build/lib/librdkitcffi.dll
+            cd rdkit/build/lib
+            BUILD=\$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
+            cp librdkitcffi.dll \$GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/librdkitcffi.dll.\$BUILD
+          else
+            echo 'DLL file not found. Listing lib directory:'
+            ls -la rdkit/build/lib/
+            exit 1
+          fi
+          ls -l \$GITHUB_WORKSPACE/rdkitcffi_windows/windows-64
+          "
+
+      - name: Create artifact
+        run: |
+          cd $env:GITHUB_WORKSPACE
+          Compress-Archive -Path "rdkitcffi_windows" -DestinationPath "rdkitcffi_windows.zip"
+
+      - name: Create Release
+        if: github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ github.workspace }}/rdkitcffi_windows.zip
+          tag_name: rdkit-windows-latest
+          name: Latest RDKit CFFI Windows Build
+          body: Automated RDKit CFFI Windows DLL build
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
