@@ -77,10 +77,6 @@ jobs:
         shell: msys2 {0}
         env:
           PKG_CONFIG_PATH: /mingw64/lib/pkgconfig
-          CAIRO_INCLUDE_DIR: /mingw64/include
-          CAIRO_LIBRARIES: /mingw64/lib/libcairo.dll.a
-          FREETYPE_INCLUDE_DIRS: /mingw64/include/freetype2
-          FREETYPE_LIBRARY: /mingw64/lib/libfreetype.dll.a
         run: |
           cd rdkit && mkdir -p build && cd build
           cmake .. \
@@ -109,10 +105,6 @@ jobs:
             -DRDK_PGSQL_STATIC=OFF \
             -DRDK_USE_BOOST_SERIALIZATION=OFF \
             -DRDK_USE_BOOST_IOSTREAMS=OFF \
-            -DCAIRO_INCLUDE_DIR=D:/a/_temp/msys64/mingw64/include \
-            -DCAIRO_LIBRARIES=D:/a/_temp/msys64/mingw64/lib/libcairo.dll.a \
-            -DFREETYPE_INCLUDE_DIRS=D:/a/_temp/msys64/mingw64/include/freetype2 \
-            -DFREETYPE_LIBRARY=D:/a/_temp/msys64/mingw64/lib/libfreetype.dll.a \
             -DZLIB_INCLUDE_DIR=D:/a/_temp/msys64/mingw64/include \
             -DZLIB_LIBRARY=D:/a/_temp/msys64/mingw64/lib/libz.dll.a \
             -DBZIP2_INCLUDE_DIR=D:/a/_temp/msys64/mingw64/include \
