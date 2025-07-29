@@ -3,7 +3,7 @@
 
 # rdkitcffi
 
-This is an &#128679; experimental  &#128679; rust wrapper for some functionality of the great [RDKit](https://www.rdkit.org/) cheminformatics library.
+This is an &#128679; rust wrapper  &#128679;  for some core functionality of the great [RDKit](https://www.rdkit.org/) cheminformatics library.
 
 It makes use of its CFFI interface, see also this [blog post](https://greglandrum.github.io/rdkit-blog/technical/2021/05/01/rdkit-cffi-part1.html).
  
@@ -11,8 +11,6 @@ Only a limited functionality is being exposed via cffi by RDKit and not all of t
  
 The rust wrapper is linked against a pre-built RDKit shared library (MinimalLib), which is stored as an artifact created via github actions and is automatically downloaded from this [location](https://github.com/chrissly31415/rdkitcffi/releases/download/rdkit-latest/rdkitcffi_linux.tar.gz) during build. 
 Currently, only linux is supported.  
-
-Please note, that there is also a cargo crate providing [low level wrapper](https://crates.io/crates/rdkit-sys) to rdkit.
 
  ## Examples
 

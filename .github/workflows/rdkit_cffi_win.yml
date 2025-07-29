@@ -36,7 +36,6 @@ jobs:
             mingw-w64-x86_64-boost
             mingw-w64-x86_64-cairo
             mingw-w64-x86_64-zlib
-            mingw-w64-x86_64-zlib-devel
             mingw-w64-x86_64-xz
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-make
@@ -79,6 +78,8 @@ jobs:
             -DRDK_PGSQL_STATIC=OFF \
             -DCAIRO_INCLUDE_DIR=/c/msys64/mingw64/include \
             -DCAIRO_LIBRARIES=/c/msys64/mingw64/lib/libcairo.dll.a \
+            -DZLIB_INCLUDE_DIR=/c/msys64/mingw64/include \
+            -DZLIB_LIBRARY=/c/msys64/mingw64/lib/libz.dll.a \
             -DCMAKE_INSTALL_PREFIX=/c/msys64/mingw64 \
             -DCMAKE_INCLUDE_PATH='/c/msys64/mingw64/include;/c/msys64/mingw64/x86_64-w64-mingw32/include' \
             -DCMAKE_LIBRARY_PATH='/c/msys64/mingw64/lib;/c/msys64/mingw64/x86_64-w64-mingw32/lib'
