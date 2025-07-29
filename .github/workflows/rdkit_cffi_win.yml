@@ -19,33 +19,38 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
+      - name: Configure git line endings
+        run: git config --global core.autocrlf input
+
       - uses: actions/checkout@v4
 
-      - name: Setup MSYS2 and MinGW
-        run: |
-          # Download and install MSYS2
-          $msys2Url = "https://github.com/msys2/msys2-installer/releases/download/2024-01-13/msys2-x86_64-20240113.exe"
-          $msys2Installer = "$env:TEMP\msys2-installer.exe"
-          Invoke-WebRequest -Uri $msys2Url -OutFile $msys2Installer
-          
-          # Install MSYS2 silently with proper arguments
-          Start-Process -FilePath $msys2Installer -ArgumentList "--quiet", "--confirm-command", "--accept-messages" -Wait
-          
-          # Wait for installation to complete and add to PATH
-          Start-Sleep -Seconds 30
-          $env:PATH = "C:\msys64\usr\bin;C:\msys64\mingw64\bin;$env:PATH"
-          
-          # Update MSYS2 and install required packages
-          C:\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm --needed base-devel mingw-w64-x86_64-toolchain"
-          C:\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm --needed mingw-w64-x86_64-cmake mingw-w64-x86_64-boost mingw-w64-x86_64-cairo mingw-w64-x86_64-zlib mingw-w64-x86_64-xz mingw-w64-x86_64-gcc mingw-w64-x86_64-make mingw-w64-x86_64-git mingw-w64-x86_64-pkg-config"
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            base-devel
+            git
+            cmake
+            boost
+            cairo
+            zlib
+            xz
+            gcc
+            make
+            pkg-config
+          pacboy: >-
+            toolchain:p
 
       - name: Clone main RDKit repo
+        shell: msys2 {0}
         run: |
-          C:\msys64\usr\bin\bash.exe -lc "git clone https://github.com/rdkit/rdkit.git --branch Release_2024_09 --single-branch rdkit --depth=1"
+          git clone https://github.com/rdkit/rdkit.git --branch Release_2024_09 --single-branch rdkit --depth=1
 
       - name: Configure build (Run CMake)
+        shell: msys2 {0}
         run: |
-          C:\msys64\usr\bin\bash.exe -lc "
           cd rdkit && mkdir build && cd build
           cmake .. \
             -G 'MSYS Makefiles' \
@@ -71,16 +76,15 @@ jobs:
             -DRDK_BUILD_PYTHON_WRAPPERS=OFF \
             -DRDK_BUILD_PGSQL=OFF \
             -DRDK_PGSQL_STATIC=OFF \
-            -DCAIRO_INCLUDE_DIR=/c/msys64/mingw64/include \
-            -DCAIRO_LIBRARIES=/c/msys64/mingw64/lib/libcairo.dll.a \
-            -DCMAKE_INSTALL_PREFIX=/c/msys64/mingw64 \
-            -DCMAKE_INCLUDE_PATH='/c/msys64/mingw64/include;/c/msys64/mingw64/x86_64-w64-mingw32/include' \
-            -DCMAKE_LIBRARY_PATH='/c/msys64/mingw64/lib;/c/msys64/mingw64/x86_64-w64-mingw32/lib'
-          "
+            -DCAIRO_INCLUDE_DIR=/c/msys64/ucrt64/include \
+            -DCAIRO_LIBRARIES=/c/msys64/ucrt64/lib/libcairo.dll.a \
+            -DCMAKE_INSTALL_PREFIX=/c/msys64/ucrt64 \
+            -DCMAKE_INCLUDE_PATH='/c/msys64/ucrt64/include;/c/msys64/ucrt64/x86_64-w64-mingw32/include' \
+            -DCMAKE_LIBRARY_PATH='/c/msys64/ucrt64/lib;/c/msys64/ucrt64/x86_64-w64-mingw32/lib'
 
       - name: Build
+        shell: msys2 {0}
         run: |
-          C:\msys64\usr\bin\bash.exe -lc "
           cd rdkit/build
           mingw32-make VERBOSE=1 -j 2 cffi_test
           # If build fails, show the error log
@@ -89,15 +93,14 @@ jobs:
             cat CMakeFiles/CMakeError.log | tail -n 100
             exit 1
           fi
-          "
 
       - name: Run tests
+        shell: msys2 {0}
         run: |
-          C:\msys64\usr\bin\bash.exe -lc "
           cd rdkit
-          export RDBASE=\$PWD
-          export PATH=\${RDBASE}/build/lib:\$PATH
-          echo 'PATH: ' \$PATH
+          export RDBASE=$PWD
+          export PATH=${RDBASE}/build/lib:$PATH
+          echo 'PATH: ' $PATH
           cd build
           # Try different possible test executable locations
           if [ -f './Code/MinimalLib/cffi_test.exe' ]; then
@@ -109,31 +112,29 @@ jobs:
             find . -name '*cffi_test*' -type f
             exit 1
           fi
-          "
 
       - name: Create build artifacts
+        shell: msys2 {0}
         run: |
-          C:\msys64\usr\bin\bash.exe -lc "
-          mkdir -p \$GITHUB_WORKSPACE/rdkitcffi_windows/windows-64
+          mkdir -p $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64
           echo '-----------------'
           # Look for the DLL file with different possible names
           if [ -f 'rdkit/build/lib/rdkitcffi.dll' ]; then
             ls -l rdkit/build/lib/rdkitcffi.dll
             cd rdkit/build/lib
-            BUILD=\$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
-            cp rdkitcffi.dll \$GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/rdkitcffi.dll.\$BUILD
+            BUILD=$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
+            cp rdkitcffi.dll $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/rdkitcffi.dll.$BUILD
           elif [ -f 'rdkit/build/lib/librdkitcffi.dll' ]; then
             ls -l rdkit/build/lib/librdkitcffi.dll
             cd rdkit/build/lib
-            BUILD=\$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
-            cp librdkitcffi.dll \$GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/librdkitcffi.dll.\$BUILD
+            BUILD=$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
+            cp librdkitcffi.dll $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/librdkitcffi.dll.$BUILD
           else
             echo 'DLL file not found. Listing lib directory:'
             ls -la rdkit/build/lib/
             exit 1
           fi
-          ls -l \$GITHUB_WORKSPACE/rdkitcffi_windows/windows-64
-          "
+          ls -l $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64
 
       - name: Create artifact
         run: |
