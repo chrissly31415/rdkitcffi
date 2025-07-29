@@ -36,6 +36,7 @@ jobs:
             mingw-w64-x86_64-boost
             mingw-w64-x86_64-cairo
             mingw-w64-x86_64-zlib
+            mingw-w64-x86_64-zlib-devel
             mingw-w64-x86_64-xz
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-make
