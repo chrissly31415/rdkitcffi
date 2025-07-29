@@ -77,6 +77,8 @@ jobs:
             -DRDK_BUILD_PYTHON_WRAPPERS=OFF \
             -DRDK_BUILD_PGSQL=OFF \
             -DRDK_PGSQL_STATIC=OFF \
+            -DRDK_USE_BOOST_SERIALIZATION=OFF \
+            -DRDK_USE_BOOST_IOSTREAMS=OFF \
             -DCAIRO_INCLUDE_DIR=/c/msys64/mingw64/include \
             -DCAIRO_LIBRARIES=/c/msys64/mingw64/lib/libcairo.dll.a \
             -DZLIB_INCLUDE_DIR=/c/msys64/mingw64/include \
