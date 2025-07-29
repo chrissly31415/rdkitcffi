@@ -27,19 +27,19 @@ jobs:
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
         with:
-          msystem: UCRT64
+          msystem: MINGW64
           update: true
           install: >-
             base-devel
             git
             cmake
-            mingw-w64-ucrt-x86_64-boost
-            mingw-w64-ucrt-x86_64-cairo
-            mingw-w64-ucrt-x86_64-zlib
-            mingw-w64-ucrt-x86_64-xz
-            mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-make
-            mingw-w64-ucrt-x86_64-pkg-config
+            mingw-w64-x86_64-boost
+            mingw-w64-x86_64-cairo
+            mingw-w64-x86_64-zlib
+            mingw-w64-x86_64-xz
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-make
+            mingw-w64-x86_64-pkg-config
           pacboy: >-
             toolchain:p
 
@@ -53,7 +53,7 @@ jobs:
         run: |
           cd rdkit && mkdir build && cd build
           cmake .. \
-            -G 'Unix Makefiles' \
+            -G 'MSYS Makefiles' \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DRDK_INSTALL_INTREE=OFF \
             -DRDK_INSTALL_STATIC_LIBS=OFF \
@@ -76,11 +76,11 @@ jobs:
             -DRDK_BUILD_PYTHON_WRAPPERS=OFF \
             -DRDK_BUILD_PGSQL=OFF \
             -DRDK_PGSQL_STATIC=OFF \
-            -DCAIRO_INCLUDE_DIR=/c/msys64/ucrt64/include \
-            -DCAIRO_LIBRARIES=/c/msys64/ucrt64/lib/libcairo.dll.a \
-            -DCMAKE_INSTALL_PREFIX=/c/msys64/ucrt64 \
-            -DCMAKE_INCLUDE_PATH='/c/msys64/ucrt64/include;/c/msys64/ucrt64/x86_64-w64-mingw32/include' \
-            -DCMAKE_LIBRARY_PATH='/c/msys64/ucrt64/lib;/c/msys64/ucrt64/x86_64-w64-mingw32/lib'
+            -DCAIRO_INCLUDE_DIR=/c/msys64/mingw64/include \
+            -DCAIRO_LIBRARIES=/c/msys64/mingw64/lib/libcairo.dll.a \
+            -DCMAKE_INSTALL_PREFIX=/c/msys64/mingw64 \
+            -DCMAKE_INCLUDE_PATH='/c/msys64/mingw64/include;/c/msys64/mingw64/x86_64-w64-mingw32/include' \
+            -DCMAKE_LIBRARY_PATH='/c/msys64/mingw64/lib;/c/msys64/mingw64/x86_64-w64-mingw32/lib'
 
       - name: Build
         shell: msys2 {0}
