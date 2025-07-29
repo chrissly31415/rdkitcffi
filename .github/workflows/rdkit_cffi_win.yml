@@ -83,6 +83,8 @@ jobs:
             -DZLIB_LIBRARY=/c/msys64/mingw64/lib/libz.dll.a \
             -DBZIP2_INCLUDE_DIR=/c/msys64/mingw64/include \
             -DBZIP2_LIBRARIES=/c/msys64/mingw64/lib/libbz2.dll.a \
+            -DLIBLZMA_INCLUDE_DIR=/c/msys64/mingw64/include \
+            -DLIBLZMA_LIBRARY=/c/msys64/mingw64/lib/liblzma.dll.a \
             -DCMAKE_INSTALL_PREFIX=/c/msys64/mingw64 \
             -DCMAKE_INCLUDE_PATH='/c/msys64/mingw64/include;/c/msys64/mingw64/x86_64-w64-mingw32/include' \
             -DCMAKE_LIBRARY_PATH='/c/msys64/mingw64/lib;/c/msys64/mingw64/x86_64-w64-mingw32/lib'
