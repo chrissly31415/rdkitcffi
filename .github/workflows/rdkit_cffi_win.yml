@@ -125,9 +125,12 @@ jobs:
 
       - name: Build
         shell: msys2 {0}
+        env:
+          MSYSTEM: MINGW64
+          MSYS2_PATH_TYPE: inherit
         run: |
           cd rdkit/build
-          mingw32-make VERBOSE=1 -j 2 cffi_test
+          mingw32-make VERBOSE=1 -j 2 rdkitcffi
           # If build fails, show the error log
           if [ $? -ne 0 ]; then
             echo 'Build failed. Showing last 100 lines of error log:'
