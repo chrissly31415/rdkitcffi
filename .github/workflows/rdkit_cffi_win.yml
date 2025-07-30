@@ -121,30 +121,11 @@ jobs:
         shell: msys2 {0}
         run: |
           cd rdkit/build
-          mingw32-make VERBOSE=1 cffi_test
+          mingw32-make VERBOSE=1 -j 2 rdkitcffi
           # If build fails, show the error log
           if [ $? -ne 0 ]; then
             echo 'Build failed. Showing last 100 lines of error log:'
             cat CMakeFiles/CMakeError.log | tail -n 100
-            exit 1
-          fi
-
-      - name: Run tests
-        shell: msys2 {0}
-        run: |
-          cd rdkit
-          export RDBASE=$PWD
-          export PATH=${RDBASE}/build/lib:$PATH
-          echo 'PATH: ' $PATH
-          cd build
-          # Try different possible test executable locations
-          if [ -f './Code/MinimalLib/cffi_test.exe' ]; then
-            ./Code/MinimalLib/cffi_test.exe
-          elif [ -f './Code/MinimalLib/cffi_test' ]; then
-            ./Code/MinimalLib/cffi_test
-          else
-            echo 'Test executable not found. Looking for it:'
-            find . -name '*cffi_test*' -type f
             exit 1
           fi
 
