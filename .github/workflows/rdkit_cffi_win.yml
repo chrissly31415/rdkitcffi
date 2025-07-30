@@ -78,7 +78,7 @@ jobs:
         run: |
           cd rdkit && mkdir -p build && cd build
           cmake .. \
-            -G 'Unix Makefiles' \
+            -G 'MSYS Makefiles' \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DRDK_INSTALL_INTREE=OFF \
             -DRDK_INSTALL_STATIC_LIBS=OFF \
@@ -103,19 +103,19 @@ jobs:
             -DRDK_PGSQL_STATIC=OFF \
             -DRDK_USE_BOOST_SERIALIZATION=OFF \
             -DRDK_USE_BOOST_IOSTREAMS=OFF \
-            -DCAIRO_INCLUDE_DIR=/c/msys64/mingw64/include \
-            -DCAIRO_LIBRARIES=/c/msys64/mingw64/lib/libcairo.dll.a \
-            -DFREETYPE_INCLUDE_DIRS=/c/msys64/mingw64/include/freetype2 \
-            -DFREETYPE_LIBRARY=/c/msys64/mingw64/lib/libfreetype.dll.a \
-            -DZLIB_INCLUDE_DIR=/c/msys64/mingw64/include \
-            -DZLIB_LIBRARY=/c/msys64/mingw64/lib/libz.dll.a \
-            -DBZIP2_INCLUDE_DIR=/c/msys64/mingw64/include \
-            -DBZIP2_LIBRARIES=/c/msys64/mingw64/lib/libbz2.dll.a \
-            -DLIBLZMA_INCLUDE_DIR=/c/msys64/mingw64/include \
-            -DLIBLZMA_LIBRARY=/c/msys64/mingw64/lib/liblzma.dll.a \
-            -DCMAKE_INSTALL_PREFIX=/c/msys64/mingw64 \
-            -DCMAKE_INCLUDE_PATH='/c/msys64/mingw64/include;/c/msys64/mingw64/x86_64-w64-mingw32/include' \
-            -DCMAKE_LIBRARY_PATH='/c/msys64/mingw64/lib;/c/msys64/mingw64/x86_64-w64-mingw32/lib'
+            -DCAIRO_INCLUDE_DIR=/mingw64/include \
+            -DCAIRO_LIBRARIES=/mingw64/lib/libcairo.dll.a \
+            -DFREETYPE_INCLUDE_DIRS=/mingw64/include/freetype2 \
+            -DFREETYPE_LIBRARY=/mingw64/lib/libfreetype.dll.a \
+            -DZLIB_INCLUDE_DIR=/mingw64/include \
+            -DZLIB_LIBRARY=/mingw64/lib/libz.dll.a \
+            -DBZIP2_INCLUDE_DIR=/mingw64/include \
+            -DBZIP2_LIBRARIES=/mingw64/lib/libbz2.dll.a \
+            -DLIBLZMA_INCLUDE_DIR=/mingw64/include \
+            -DLIBLZMA_LIBRARY=/mingw64/lib/liblzma.dll.a \
+            -DCMAKE_INSTALL_PREFIX=/mingw64 \
+            -DCMAKE_INCLUDE_PATH='/mingw64/include;/mingw64/x86_64-w64-mingw32/include' \
+            -DCMAKE_LIBRARY_PATH='/mingw64/lib;/mingw64/x86_64-w64-mingw32/lib'
 
       - name: Build
         shell: msys2 {0}
