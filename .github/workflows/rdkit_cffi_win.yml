@@ -93,7 +93,6 @@ jobs:
             -DRDK_BUILD_AVALON_SUPPORT=ON \
             -DRDK_BUILD_INCHI_SUPPORT=ON \
             -DRDK_BUILD_CAIRO_SUPPORT=ON \
-            
             -DRDK_CFFI_STATIC=OFF \
             -DRDK_BUILD_THREADSAFE_SSS=ON \
             -DRDK_BUILD_SWIG_WRAPPERS=OFF \
