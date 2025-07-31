@@ -100,8 +100,6 @@ jobs:
             -DRDK_USE_BOOST_SERIALIZATION=OFF \
             -DRDK_USE_BOOST_IOSTREAMS=ON \
 
-            -DFREETYPE_INCLUDE_DIRS=/mingw64/include/freetype2 \
-            -DFREETYPE_LIBRARY=/mingw64/lib/libfreetype.dll.a \
             -DZLIB_INCLUDE_DIR=/mingw64/include \
             -DZLIB_LIBRARY=/mingw64/lib/libz.dll.a \
             -DBZIP2_INCLUDE_DIR=/mingw64/include \
