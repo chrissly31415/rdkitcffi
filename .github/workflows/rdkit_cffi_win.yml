@@ -44,6 +44,7 @@ jobs:
             git
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-boost
+            mingw-w64-x86_64-cairo
             mingw-w64-x86_64-freetype
             mingw-w64-x86_64-zlib
             mingw-w64-x86_64-bzip2
@@ -80,26 +81,34 @@ jobs:
             -G 'MSYS Makefiles' \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DRDK_BUILD_MINIMAL_LIB=ON \
+            -DRDK_BUILD_CFFI_LIB=ON \
             -DRDK_INSTALL_INTREE=OFF \
             -DRDK_INSTALL_STATIC_LIBS=OFF \
             -DRDK_BUILD_CPP_TESTS=OFF \
-            -DRDK_BUILD_PYTHON_WRAPPERS=OFF \
             -DRDK_BUILD_COORDGEN_SUPPORT=ON \
             -DRDK_BUILD_MAEPARSER_SUPPORT=OFF \
             -DRDK_OPTIMIZE_POPCNT=ON \
+            -DRDK_BUILD_TEST_GZIP=OFF \
+            -DRDK_BUILD_FREESASA_SUPPORT=ON \
+            -DRDK_BUILD_AVALON_SUPPORT=ON \
             -DRDK_BUILD_INCHI_SUPPORT=ON \
-            -DRDK_BUILD_CFFI_LIB=ON \
+            -DRDK_BUILD_CAIRO_SUPPORT=ON \
+            
             -DRDK_CFFI_STATIC=OFF \
             -DRDK_BUILD_THREADSAFE_SSS=ON \
             -DRDK_BUILD_SWIG_WRAPPERS=OFF \
             -DRDK_SWIG_STATIC=OFF \
             -DRDK_TEST_MULTITHREADED=ON \
             -DRDK_INSTALL_DLLS_MSVC=ON \
+            -DRDK_BUILD_PYTHON_WRAPPERS=OFF \
             -DRDK_BUILD_PGSQL=OFF \
             -DRDK_PGSQL_STATIC=OFF \
-            -DRDK_USE_BOOST_SERIALIZATION=OFF \
+            -DRDK_USE_BOOST_SERIALIZATION=ON \
             -DRDK_USE_BOOST_IOSTREAMS=ON \
-
+            -DCAIRO_INCLUDE_DIR=/mingw64/include \
+            -DCAIRO_LIBRARIES=/mingw64/lib/libcairo.dll.a \
+            -DFREETYPE_INCLUDE_DIRS=/mingw64/include/freetype2 \
+            -DFREETYPE_LIBRARY=/mingw64/lib/libfreetype.dll.a \
             -DZLIB_INCLUDE_DIR=/mingw64/include \
             -DZLIB_LIBRARY=/mingw64/lib/libz.dll.a \
             -DBZIP2_INCLUDE_DIR=/mingw64/include \
