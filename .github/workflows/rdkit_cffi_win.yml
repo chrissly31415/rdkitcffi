@@ -79,8 +79,8 @@ jobs:
           cd rdkit && mkdir -p build && cd build
           cmake .. \
             -G 'MSYS Makefiles' \
-            -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DRDK_BUILD_MINIMAL_LIB=ON \
             -DRDK_INSTALL_INTREE=OFF \
             -DRDK_INSTALL_STATIC_LIBS=OFF \
             -DRDK_BUILD_CPP_TESTS=OFF \
@@ -89,7 +89,6 @@ jobs:
             -DRDK_BUILD_MAEPARSER_SUPPORT=ON \
             -DRDK_OPTIMIZE_POPCNT=ON \
             -DRDK_BUILD_INCHI_SUPPORT=ON \
-            -DRDK_BUILD_CAIRO_SUPPORT=ON \
             -DRDK_BUILD_CFFI_LIB=ON \
             -DRDK_CFFI_STATIC=OFF \
             -DRDK_BUILD_THREADSAFE_SSS=ON \
@@ -100,8 +99,8 @@ jobs:
             -DRDK_BUILD_PGSQL=OFF \
             -DRDK_PGSQL_STATIC=OFF \
             -DRDK_USE_BOOST_SERIALIZATION=OFF \
-            -DRDK_USE_BOOST_IOSTREAMS=OFF \
-            -DRDK_BUILD_MINIMAL_LIB=ON \
+            -DRDK_USE_BOOST_IOSTREAMS=ON \
+
             -DCAIRO_INCLUDE_DIR=/mingw64/include \
             -DCAIRO_LIBRARIES=/mingw64/lib/libcairo.dll.a \
             -DFREETYPE_INCLUDE_DIRS=/mingw64/include/freetype2 \
