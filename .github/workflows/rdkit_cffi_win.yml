@@ -58,7 +58,7 @@ jobs:
       - name: Clone main RDKit repo
         shell: msys2 {0}
         run: |
-          git clone https://github.com/rdkit/rdkit.git --branch Release_2024_09 --single-branch rdkit --depth=1
+          git clone https://github.com/rdkit/rdkit.git --branch Release_2025_03 --single-branch rdkit --depth=1
 
       - name: Cache CMake and build artifacts
         uses: actions/cache@v4
@@ -103,6 +103,7 @@ jobs:
             -DRDK_PGSQL_STATIC=OFF \
             -DRDK_USE_BOOST_SERIALIZATION=ON \
             -DRDK_USE_BOOST_IOSTREAMS=ON \
+            -DRDK_BUILD_MINIMAL_LIB=ON \
             -DCAIRO_INCLUDE_DIR=/mingw64/include \
             -DCAIRO_LIBRARIES=/mingw64/lib/libcairo.dll.a \
             -DFREETYPE_INCLUDE_DIRS=/mingw64/include/freetype2 \
