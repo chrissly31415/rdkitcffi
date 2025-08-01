@@ -154,22 +154,27 @@ jobs:
         run: |
           mkdir -p $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64
           echo '-----------------'
-          # Look for the DLL file in the lib directory (matching Linux workflow)
-          if [ -f 'rdkit/build/lib/librdkitcffi.dll' ]; then
+          # Look for the DLL file in the bin directory (where it's actually created)
+          if [ -f 'rdkit/build/bin/librdkitcffi.dll' ]; then
+            ls -l rdkit/build/bin/librdkitcffi.dll
+            cd rdkit/build/bin
+            BUILD=$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
+            cp librdkitcffi.dll $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/librdkitcffi.dll.$BUILD
+          elif [ -f 'rdkit/build/bin/rdkitcffi.dll' ]; then
+            ls -l rdkit/build/bin/rdkitcffi.dll
+            cd rdkit/build/bin
+            BUILD=$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
+            cp rdkitcffi.dll $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/rdkitcffi.dll.$BUILD
+          elif [ -f 'rdkit/build/lib/librdkitcffi.dll' ]; then
             ls -l rdkit/build/lib/librdkitcffi.dll
             cd rdkit/build/lib
             BUILD=$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
             cp librdkitcffi.dll $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/librdkitcffi.dll.$BUILD
-          elif [ -f 'rdkit/build/lib/rdkitcffi.dll' ]; then
-            ls -l rdkit/build/lib/rdkitcffi.dll
-            cd rdkit/build/lib
-            BUILD=$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
-            cp rdkitcffi.dll $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/rdkitcffi.dll.$BUILD
           else
-            echo 'DLL file not found in lib directory. Listing lib directory:'
-            ls -la rdkit/build/lib/ | grep -E "(rdkitcffi|\.dll)"
-            echo 'Also checking bin directory:'
+            echo 'DLL file not found. Listing bin directory:'
             ls -la rdkit/build/bin/ | grep -E "(rdkitcffi|\.dll)"
+            echo 'Also checking lib directory:'
+            ls -la rdkit/build/lib/ | grep -E "(rdkitcffi|\.dll)"
             exit 1
           fi
           ls -l $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64
