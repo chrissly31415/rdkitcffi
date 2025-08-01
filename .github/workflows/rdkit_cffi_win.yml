@@ -65,28 +65,17 @@ jobs:
         run: |
           cd rdkit/Code/MinimalLib
           # Add missing function implementations to fix linking errors
-          cat > cffi_patch.patch << 'EOF'
-          --- a/cffiwrapper.cpp
-          +++ b/cffiwrapper.cpp
-          @@ -50,6 +50,15 @@
-           
-           using namespace RDKit;
-           
-          +// Patch for missing functions in this RDKit version
-          +namespace RDKit {
-          +void updateSmilesWriteParamsFromJSON(SmilesWriteParams&, const char*) {
-          +  // Empty implementation - not needed for CFFI
-          +}
-          +void updateCXSmilesFieldsFromJSON(SmilesWrite::CXSmilesFields&, RestoreBondDirOption&, const char*) {
-          +  // Empty implementation - not needed for CFFI
-          +}
-          +}
-          +
-           #if (defined(__GNUC__) || defined(__GNUG__))
-           #pragma GCC diagnostic push
-           #pragma GCC diagnostic ignored "-Wconversion-null"
-          EOF
-          patch -p1 < cffi_patch.patch
+          # Insert the missing functions after "using namespace RDKit;"
+          sed -i '/using namespace RDKit;/a\
+          // Patch for missing functions in this RDKit version\
+          namespace RDKit {\
+          void updateSmilesWriteParamsFromJSON(SmilesWriteParams&, const char*) {\
+            // Empty implementation - not needed for CFFI\
+          }\
+          void updateCXSmilesFieldsFromJSON(SmilesWrite::CXSmilesFields&, RestoreBondDirOption&, const char*) {\
+            // Empty implementation - not needed for CFFI\
+          }\
+          }' cffiwrapper.cpp
 
       - name: Cache CMake and build artifacts
         uses: actions/cache@v4
