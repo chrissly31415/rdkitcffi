@@ -1,0 +1,23 @@
+repos:
+  # Rust formatting
+  - repo: https://github.com/pre-commit/mirrors-rustfmt
+    rev: v1.7.0
+    hooks:
+      - id: rustfmt
+        args: [--edition=2018]
+
+  # Rust linting
+  - repo: https://github.com/pre-commit/mirrors-clippy
+    rev: v1.77.0
+    hooks:
+      - id: clippy
+        args: [--all-targets, --all-features, -- -D warnings]
+
+  # Basic file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml 
