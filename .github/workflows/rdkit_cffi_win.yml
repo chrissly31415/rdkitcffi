@@ -154,22 +154,36 @@ jobs:
         run: |
           mkdir -p $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64
           echo '-----------------'
+          echo 'Looking for DLL files...'
+          
           # Look for the DLL file in the bin directory (where it's actually created)
           if [ -f 'rdkit/build/bin/librdkitcffi.dll' ]; then
+            echo 'Found librdkitcffi.dll in bin directory'
             ls -l rdkit/build/bin/librdkitcffi.dll
             cd rdkit/build/bin
             BUILD=$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
             cp librdkitcffi.dll $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/librdkitcffi.dll.$BUILD
+            # Also create a symlink without version for easier access
+            cd $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64
+            ln -sf librdkitcffi.dll.$BUILD librdkitcffi.dll
           elif [ -f 'rdkit/build/bin/rdkitcffi.dll' ]; then
+            echo 'Found rdkitcffi.dll in bin directory'
             ls -l rdkit/build/bin/rdkitcffi.dll
             cd rdkit/build/bin
             BUILD=$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
             cp rdkitcffi.dll $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/rdkitcffi.dll.$BUILD
+            # Also create a symlink without version for easier access
+            cd $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64
+            ln -sf rdkitcffi.dll.$BUILD rdkitcffi.dll
           elif [ -f 'rdkit/build/lib/librdkitcffi.dll' ]; then
+            echo 'Found librdkitcffi.dll in lib directory'
             ls -l rdkit/build/lib/librdkitcffi.dll
             cd rdkit/build/lib
             BUILD=$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
             cp librdkitcffi.dll $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/librdkitcffi.dll.$BUILD
+            # Also create a symlink without version for easier access
+            cd $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64
+            ln -sf librdkitcffi.dll.$BUILD librdkitcffi.dll
           else
             echo 'DLL file not found. Listing bin directory:'
             ls -la rdkit/build/bin/ | grep -E "(rdkitcffi|\.dll)"
@@ -177,15 +191,44 @@ jobs:
             ls -la rdkit/build/lib/ | grep -E "(rdkitcffi|\.dll)"
             exit 1
           fi
-          ls -l $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64
+          
+          echo 'Final artifact directory contents:'
+          ls -la $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/
+          
+          echo 'Checking file sizes:'
+          du -h $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/*
 
       - name: Create artifact
         run: |
           cd $env:GITHUB_WORKSPACE
-          Compress-Archive -Path "rdkitcffi_windows" -DestinationPath "rdkitcffi_windows.zip"
+          # Check if the directory exists and has files
+          if (Test-Path "rdkitcffi_windows") {
+            Write-Host "Found rdkitcffi_windows directory, contents:"
+            Get-ChildItem -Recurse "rdkitcffi_windows"
+            Compress-Archive -Path "rdkitcffi_windows" -DestinationPath "rdkitcffi_windows.zip" -Force
+            Write-Host "Created rdkitcffi_windows.zip"
+            Get-ChildItem "rdkitcffi_windows.zip"
+            
+            # Verify zip contents
+            Write-Host "Verifying zip contents:"
+            Expand-Archive -Path "rdkitcffi_windows.zip" -DestinationPath "verify_zip" -Force
+            Get-ChildItem -Recurse "verify_zip"
+            Remove-Item -Recurse -Force "verify_zip"
+          } else {
+            Write-Host "ERROR: rdkitcffi_windows directory not found!"
+            Get-ChildItem
+            exit 1
+          }
+
+      - name: Upload artifact to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: rdkitcffi_windows
+          path: ${{ github.workspace }}/rdkitcffi_windows.zip
+          retention-days: 30
 
       - name: Create Release
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ github.workspace }}/rdkitcffi_windows.zip

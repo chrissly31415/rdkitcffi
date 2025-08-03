@@ -17,7 +17,29 @@ use bindgen::CargoCallbacks;
 
 fn download_rdkit_artifact() -> Option<String> {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("Failed to get CARGO_MANIFEST_DIR");
-    let lib_dir = format!("{}/rdkitcffi_linux/linux-64", manifest_dir);
+    
+    // Detect target OS
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_else(|_| {
+        if cfg!(target_os = "windows") {
+            "windows".to_string()
+        } else {
+            "linux".to_string()
+        }
+    });
+    
+    let (lib_dir, artifact_name, release_tag) = if target_os == "windows" {
+        (
+            format!("{}/rdkitcffi_windows/windows-64", manifest_dir),
+            "rdkitcffi_windows.zip".to_string(),
+            "rdkit-windows-latest".to_string()
+        )
+    } else {
+        (
+            format!("{}/rdkitcffi_linux/linux-64", manifest_dir),
+            "rdkitcffi_linux.tar.gz".to_string(),
+            "rdkit-latest".to_string()
+        )
+    };
 
     // Create directories if they don't exist
     std::fs::create_dir_all(&lib_dir).ok()?;
@@ -25,46 +47,55 @@ fn download_rdkit_artifact() -> Option<String> {
     // Download from GitHub release
     let repo_owner = "chrissly31415"; // Replace with your GitHub username
     let repo_name = "rdkitcffi"; // Replace with your repo name
-    let release_tag = "rdkit-latest";
-    let artifact_name = "rdkitcffi_linux.tar.gz";
 
     let download_url = format!(
         "https://github.com/{}/{}/releases/download/{}/{}",
         repo_owner, repo_name, release_tag, artifact_name
     );
 
-    // Download the tarball
+    // Download the artifact
     if Command::new("wget")
-        .args(["-O", artifact_name, &download_url])
+        .args(["-O", &artifact_name, &download_url])
         .status()
         .ok()?
         .success()
     {
-        // Extract the tarball
-        Command::new("tar")
-            .args(["xzf", artifact_name, "-C", &manifest_dir])
-            .status()
-            .ok()?;
+        // Extract the artifact
+        if target_os == "windows" {
+            // Extract zip file for Windows
+            Command::new("unzip")
+                .args([&artifact_name, "-d", &manifest_dir])
+                .status()
+                .ok()?;
+        } else {
+            // Extract tarball for Linux
+            Command::new("tar")
+                .args(["xzf", &artifact_name, "-C", &manifest_dir])
+                .status()
+                .ok()?;
+        }
 
-        // Clean up downloaded tarball
-        std::fs::remove_file(artifact_name).ok()?;
+        // Clean up downloaded artifact
+        std::fs::remove_file(&artifact_name).ok()?;
 
-        // Create symlinks
-        let lib_files = std::fs::read_dir(&lib_dir).ok()?;
-        for entry in lib_files {
-            if let Ok(entry) = entry {
-                let filename = entry.file_name();
-                if let Some(name) = filename.to_str() {
-                    if name.starts_with("librdkitcffi.so.1.") {
-                        Command::new("ln")
-                            .args(["-sf", name, &format!("{}/librdkitcffi.so", lib_dir)])
-                            .status()
-                            .ok()?;
-                        Command::new("ln")
-                            .args(["-sf", name, &format!("{}/librdkitcffi.so.1", lib_dir)])
-                            .status()
-                            .ok()?;
-                        break;
+        // Create symlinks (only for Linux)
+        if target_os != "windows" {
+            let lib_files = std::fs::read_dir(&lib_dir).ok()?;
+            for entry in lib_files {
+                if let Ok(entry) = entry {
+                    let filename = entry.file_name();
+                    if let Some(name) = filename.to_str() {
+                        if name.starts_with("librdkitcffi.so.1.") {
+                            Command::new("ln")
+                                .args(["-sf", name, &format!("{}/librdkitcffi.so", lib_dir)])
+                                .status()
+                                .ok()?;
+                            Command::new("ln")
+                                .args(["-sf", name, &format!("{}/librdkitcffi.so.1", lib_dir)])
+                                .status()
+                                .ok()?;
+                            break;
+                        }
                     }
                 }
             }
@@ -76,6 +107,20 @@ fn download_rdkit_artifact() -> Option<String> {
 }
 
 fn build_rdkit() -> Option<String> {
+    // Don't build on Windows, only download
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_else(|_| {
+        if cfg!(target_os = "windows") {
+            "windows".to_string()
+        } else {
+            "linux".to_string()
+        }
+    });
+    
+    if target_os == "windows" {
+        println!("cargo:warning=Local RDKit compilation not supported on Windows. Please ensure the Windows artifact is available for download.");
+        return None;
+    }
+
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("Failed to get CARGO_MANIFEST_DIR");
     let lib_dir = format!("{}/rdkitcffi_linux/linux-64", manifest_dir);
 
@@ -174,15 +219,29 @@ fn get_rdkit_lib_path() -> String {
         return path;
     }
 
-    // If download fails, try building
-    println!("cargo:warning=Download failed, attempting to build RDKit...");
-    if let Some(path) = build_rdkit() {
-        println!("cargo:warning=Successfully built RDKit");
-        return path;
+    // If download fails, try building (only on Linux)
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_else(|_| {
+        if cfg!(target_os = "windows") {
+            "windows".to_string()
+        } else {
+            "linux".to_string()
+        }
+    });
+    
+    if target_os != "windows" {
+        println!("cargo:warning=Download failed, attempting to build RDKit...");
+        if let Some(path) = build_rdkit() {
+            println!("cargo:warning=Successfully built RDKit");
+            return path;
+        }
     }
 
     // If both fail, panic with helpful message
-    panic!("Failed to either download or build RDKit. Please ensure you have internet connection or the required dependencies installed.");
+    if target_os == "windows" {
+        panic!("Failed to download Windows RDKit artifact. Please ensure the Windows artifact is available in the GitHub release.");
+    } else {
+        panic!("Failed to either download or build RDKit. Please ensure you have internet connection or the required dependencies installed.");
+    }
 }
 
 fn main() {
@@ -192,15 +251,30 @@ fn main() {
     let shared_lib_dir = get_rdkit_lib_path();
     println!("shared_lib_dir: {}", shared_lib_dir);
 
+    // Detect target OS for linking
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_else(|_| {
+        if cfg!(target_os = "windows") {
+            "windows".to_string()
+        } else {
+            "linux".to_string()
+        }
+    });
+
     // Link configuration
     println!("cargo:rustc-link-search=native={}", shared_lib_dir);
-    println!("cargo:rustc-link-lib=dylib=rdkitcffi");
+    
+    if target_os == "windows" {
+        println!("cargo:rustc-link-lib=dylib=rdkitcffi");
+        // Set PATH for Windows DLL loading
+        println!("cargo:rustc-env=PATH={};{}", shared_lib_dir, env::var("PATH").unwrap_or_default());
+    } else {
+        println!("cargo:rustc-link-lib=dylib=rdkitcffi");
+        // Set LD_LIBRARY_PATH for Linux
+        println!("cargo:rustc-env=LD_LIBRARY_PATH={}", shared_lib_dir);
+    }
 
     // Rebuild if header changes
     println!("cargo:rerun-if-changed=include/cffiwrapper.h");
-
-    // Set up library path for tests and run
-    println!("cargo:rustc-env=LD_LIBRARY_PATH={}", shared_lib_dir);
 
     // Generate bindings
     let bindings = bindgen::Builder::default()
