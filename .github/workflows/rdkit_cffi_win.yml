@@ -100,7 +100,7 @@ jobs:
             -DRDK_BUILD_MINIMAL_LIB=ON \
             -DRDK_BUILD_CFFI_LIB=ON \
             -DRDK_INSTALL_INTREE=OFF \
-            -DRDK_INSTALL_STATIC_LIBS=OFF \
+            -DRDK_INSTALL_STATIC_LIBS=ON \
             -DRDK_BUILD_CPP_TESTS=OFF \
             -DRDK_BUILD_COORDGEN_SUPPORT=ON \
             -DRDK_BUILD_MAEPARSER_SUPPORT=OFF \
@@ -110,15 +110,13 @@ jobs:
             -DRDK_BUILD_AVALON_SUPPORT=ON \
             -DRDK_BUILD_INCHI_SUPPORT=ON \
             -DRDK_BUILD_CAIRO_SUPPORT=ON \
-            -DRDK_CFFI_STATIC=OFF \
+            -DRDK_CFFI_STATIC=ON \
             -DRDK_BUILD_THREADSAFE_SSS=ON \
             -DRDK_BUILD_SWIG_WRAPPERS=OFF \
-            -DRDK_SWIG_STATIC=OFF \
             -DRDK_TEST_MULTITHREADED=ON \
             -DRDK_INSTALL_DLLS_MSVC=ON \
             -DRDK_BUILD_PYTHON_WRAPPERS=OFF \
             -DRDK_BUILD_PGSQL=OFF \
-            -DRDK_PGSQL_STATIC=OFF \
             -DRDK_USE_BOOST_SERIALIZATION=ON \
             -DRDK_USE_BOOST_IOSTREAMS=ON \
             -DCAIRO_INCLUDE_DIR=/mingw64/include \
@@ -208,39 +206,30 @@ jobs:
           if (Test-Path "rdkitcffi_windows") {
             Write-Host "Found rdkitcffi_windows directory, contents:"
             Get-ChildItem -Recurse "rdkitcffi_windows"
-            Compress-Archive -Path "rdkitcffi_windows" -DestinationPath "rdkitcffi_windows.zip" -Force
-            Write-Host "Created rdkitcffi_windows.zip"
-            Get-ChildItem "rdkitcffi_windows.zip"
-            
-            # Verify zip contents
-            Write-Host "Verifying zip contents:"
-            Expand-Archive -Path "rdkitcffi_windows.zip" -DestinationPath "verify_zip" -Force
-            Get-ChildItem -Recurse "verify_zip"
-            Remove-Item -Recurse -Force "verify_zip"
             
             # Show current directory and file for debugging
             Write-Host "Current directory:"
             Get-Location
-            Write-Host "Zip file details:"
-            Get-ChildItem "rdkitcffi_windows.zip" | Format-List
+            Write-Host "Directory details:"
+            Get-ChildItem "rdkitcffi_windows" | Format-List
           } else {
             Write-Host "ERROR: rdkitcffi_windows directory not found!"
             Get-ChildItem
             exit 1
           }
 
-      - name: Verify zip file exists
+      - name: Verify directory exists
         run: |
           Write-Host "Current directory:"
           Get-Location
           Write-Host "Files in current directory:"
           Get-ChildItem
-          Write-Host "Checking for zip file:"
-          if (Test-Path "rdkitcffi_windows.zip") {
-            Write-Host "✅ Zip file found!"
-            Get-ChildItem "rdkitcffi_windows.zip" | Format-List
+          Write-Host "Checking for rdkitcffi_windows directory:"
+          if (Test-Path "rdkitcffi_windows") {
+            Write-Host "✅ Directory found!"
+            Get-ChildItem "rdkitcffi_windows" -Recurse
           } else {
-            Write-Host "❌ Zip file not found!"
+            Write-Host "❌ Directory not found!"
             exit 1
           }
 
@@ -248,14 +237,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rdkitcffi_windows
-          path: rdkitcffi_windows.zip
+          path: rdkitcffi_windows
           retention-days: 30
 
       - name: Create Release
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         with:
-          files: ./rdkitcffi_windows.zip
+          files: rdkitcffi_windows
           tag_name: rdkit-windows-latest
           name: Latest RDKit CFFI Windows Build
           body: Automated RDKit CFFI Windows DLL build
