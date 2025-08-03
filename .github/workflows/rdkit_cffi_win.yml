@@ -217,6 +217,12 @@ jobs:
             Expand-Archive -Path "rdkitcffi_windows.zip" -DestinationPath "verify_zip" -Force
             Get-ChildItem -Recurse "verify_zip"
             Remove-Item -Recurse -Force "verify_zip"
+            
+            # Show current directory and file for debugging
+            Write-Host "Current directory:"
+            Get-Location
+            Write-Host "Zip file details:"
+            Get-ChildItem "rdkitcffi_windows.zip" | Format-List
           } else {
             Write-Host "ERROR: rdkitcffi_windows directory not found!"
             Get-ChildItem
@@ -227,14 +233,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rdkitcffi_windows
-          path: ${{ github.workspace }}/rdkitcffi_windows.zip
+          path: rdkitcffi_windows.zip
           retention-days: 30
 
       - name: Create Release
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         with:
-          files: ${{ github.workspace }}/rdkitcffi_windows.zip
+          files: rdkitcffi_windows.zip
           tag_name: rdkit-windows-latest
           name: Latest RDKit CFFI Windows Build
           body: Automated RDKit CFFI Windows DLL build
