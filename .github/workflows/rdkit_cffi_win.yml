@@ -196,7 +196,10 @@ jobs:
           ls -la $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/
           
           echo 'Checking file sizes:'
-          du -h $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/*
+          ls -lh $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/
+          
+          echo 'Verifying DLL file:'
+          file $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/librdkitcffi.dll
 
       - name: Create artifact
         run: |
