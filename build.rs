@@ -17,7 +17,7 @@ use bindgen::CargoCallbacks;
 
 fn download_rdkit_artifact() -> Option<String> {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("Failed to get CARGO_MANIFEST_DIR");
-    
+
     // Detect target OS
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_else(|_| {
         if cfg!(target_os = "windows") {
@@ -26,18 +26,18 @@ fn download_rdkit_artifact() -> Option<String> {
             "linux".to_string()
         }
     });
-    
+
     let (lib_dir, artifact_name, release_tag) = if target_os == "windows" {
         (
             format!("{}/rdkitcffi_windows/windows-64", manifest_dir),
             "rdkitcffi_windows.zip".to_string(),
-            "rdkit-windows-latest".to_string()
+            "rdkit-windows-latest".to_string(),
         )
     } else {
         (
             format!("{}/rdkitcffi_linux/linux-64", manifest_dir),
             "rdkitcffi_linux.tar.gz".to_string(),
-            "rdkit-latest".to_string()
+            "rdkit-latest".to_string(),
         )
     };
 
@@ -115,7 +115,7 @@ fn build_rdkit() -> Option<String> {
             "linux".to_string()
         }
     });
-    
+
     if target_os == "windows" {
         println!("cargo:warning=Local RDKit compilation not supported on Windows. Please ensure the Windows artifact is available for download.");
         return None;
@@ -227,7 +227,7 @@ fn get_rdkit_lib_path() -> String {
             "linux".to_string()
         }
     });
-    
+
     if target_os != "windows" {
         println!("cargo:warning=Download failed, attempting to build RDKit...");
         if let Some(path) = build_rdkit() {
@@ -262,11 +262,15 @@ fn main() {
 
     // Link configuration
     println!("cargo:rustc-link-search=native={}", shared_lib_dir);
-    
+
     if target_os == "windows" {
         println!("cargo:rustc-link-lib=dylib=rdkitcffi");
         // Set PATH for Windows DLL loading
-        println!("cargo:rustc-env=PATH={};{}", shared_lib_dir, env::var("PATH").unwrap_or_default());
+        println!(
+            "cargo:rustc-env=PATH={};{}",
+            shared_lib_dir,
+            env::var("PATH").unwrap_or_default()
+        );
     } else {
         println!("cargo:rustc-link-lib=dylib=rdkitcffi");
         // Set LD_LIBRARY_PATH for Linux
