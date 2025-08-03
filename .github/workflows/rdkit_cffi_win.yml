@@ -229,6 +229,21 @@ jobs:
             exit 1
           }
 
+      - name: Verify zip file exists
+        run: |
+          Write-Host "Current directory:"
+          Get-Location
+          Write-Host "Files in current directory:"
+          Get-ChildItem
+          Write-Host "Checking for zip file:"
+          if (Test-Path "rdkitcffi_windows.zip") {
+            Write-Host "✅ Zip file found!"
+            Get-ChildItem "rdkitcffi_windows.zip" | Format-List
+          } else {
+            Write-Host "❌ Zip file not found!"
+            exit 1
+          }
+
       - name: Upload artifact to GitHub Actions
         uses: actions/upload-artifact@v4
         with:
@@ -240,7 +255,7 @@ jobs:
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         with:
-          files: rdkitcffi_windows.zip
+          files: ./rdkitcffi_windows.zip
           tag_name: rdkit-windows-latest
           name: Latest RDKit CFFI Windows Build
           body: Automated RDKit CFFI Windows DLL build
