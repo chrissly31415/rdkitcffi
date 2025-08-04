@@ -25,23 +25,20 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup build environment
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+
+      - name: Create conda environment
         run: |
-          Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
           conda config --set always_yes yes --set changeps1 no
           conda info -a
           conda install -n base conda-libmamba-solver
           conda config --set solver libmamba
-
-      - name: Install dependencies
-        run: |
-          conda create --name rdkit_build -c conda-forge python=3.11 ^
+          conda create --name rdkit_build -c conda-forge ^
               boost=1.84 boost-cpp=1.84 ^
-              libboost-python-devel=1.84 ^
-              libboost=1.84 ^
-              libboost-devel=1.84 ^
-              numpy matplotlib cairo pillow eigen pandas=2.1
-          call activate rdkit_build
-          conda install -c conda-forge cmake ipython pytest nbval
+              libboost=1.84 libboost-devel=1.84 ^
+              cairo eigen cmake
 
       - name: Clone main RDKit repo
         run: |

@@ -139,8 +139,8 @@ jobs:
             -DCMAKE_LIBRARY_PATH='/mingw64/lib;/mingw64/x86_64-w64-mingw32/lib' \
             -DCMAKE_EXE_LINKER_FLAGS='-Wl,--allow-shlib-undefined' \
             -DCMAKE_SHARED_LINKER_FLAGS='-Wl,--allow-shlib-undefined' \
-            -DCMAKE_C_FLAGS='-std=gnu17 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign' \
-            -DCMAKE_CXX_FLAGS='-std=gnu++17 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign'
+            -DCMAKE_C_FLAGS='-std=c17 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign' \
+            -DCMAKE_CXX_FLAGS='-std=c++17 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign'
 
       - name: Build
         shell: msys2 {0}
