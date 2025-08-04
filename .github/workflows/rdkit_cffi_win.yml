@@ -64,18 +64,38 @@ jobs:
         shell: msys2 {0}
         run: |
           cd rdkit/Code/MinimalLib
-          # Add missing function implementations to fix linking errors
-          # Insert the missing functions after "using namespace RDKit;"
-          sed -i '/using namespace RDKit;/a\
-          // Patch for missing functions in this RDKit version\
-          namespace RDKit {\
-          void updateSmilesWriteParamsFromJSON(SmilesWriteParams&, const char*) {\
-            // Empty implementation - not needed for CFFI\
-          }\
-          void updateCXSmilesFieldsFromJSON(SmilesWrite::CXSmilesFields&, RestoreBondDirOption&, const char*) {\
-            // Empty implementation - not needed for CFFI\
-          }\
-          }' cffiwrapper.cpp
+          # Check if patch is already applied
+          if ! grep -q "updateSmilesWriteParamsFromJSON" cffiwrapper.cpp; then
+            # Add missing function implementations to fix linking errors
+            # Insert the missing functions after "using namespace RDKit;"
+            sed -i '/using namespace RDKit;/a\
+            // Patch for missing functions in this RDKit version\
+            namespace RDKit {\
+            void updateSmilesWriteParamsFromJSON(SmilesWriteParams&, const char*) {\
+              // Empty implementation - not needed for CFFI\
+            }\
+            void updateCXSmilesFieldsFromJSON(SmilesWrite::CXSmilesFields&, RestoreBondDirOption&, const char*) {\
+              // Empty implementation - not needed for CFFI\
+            }\
+            }' cffiwrapper.cpp
+            echo "Patch applied"
+          else
+            echo "Patch already applied"
+          fi
+
+      - name: Fix ML Cluster C code issues
+        shell: msys2 {0}
+        run: |
+          cd rdkit/Code/ML/Cluster/Murtagh
+          # Fix the function declaration mismatch in hc.c
+          if [ -f "hc.c" ]; then
+            echo "Fixing function declarations in hc.c..."
+            # Fix the ioffset_ function declaration to match its usage
+            sed -i 's/extern integer ioffset_();/extern integer ioffset_(integer *n, integer *i, integer *j);/' hc.c
+            echo "Fixed ioffset_ function declaration"
+          else
+            echo "hc.c not found, skipping patch"
+          fi
 
       - name: Cache CMake and build artifacts
         uses: actions/cache@v4
