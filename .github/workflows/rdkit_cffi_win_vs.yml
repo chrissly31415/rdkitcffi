@@ -32,43 +32,80 @@ jobs:
       - name: Create conda environment
         shell: cmd
         run: |
+          echo "=== CONDA ENVIRONMENT CREATION DEBUG ==="
           echo "Setting up conda configuration..."
           conda config --set always_yes yes --set changeps1 no
+          echo "Config set successfully"
           
-          echo "Showing conda info..."
+          echo "=== CONDA INFO ==="
           conda info -a
           
-          echo "Installing conda-libmamba-solver..."
+          echo "=== INSTALLING LIBMAMBA SOLVER ==="
           conda install -n base conda-libmamba-solver
+          echo "Libmamba solver installed"
           
-          echo "Setting solver to libmamba..."
+          echo "=== SETTING SOLVER ==="
           conda config --set solver libmamba
+          echo "Solver set to libmamba"
           
-          echo "Creating rdkit_build environment..."
+          echo "=== CHECKING AVAILABLE PACKAGES ==="
+          echo "Checking boost packages:"
+          conda search -c conda-forge boost | findstr "1.84"
+          echo "Checking boost-cpp packages:"
+          conda search -c conda-forge boost-cpp | findstr "1.84"
+          echo "Checking libboost packages:"
+          conda search -c conda-forge libboost | findstr "1.84"
+          echo "Checking libboost-devel packages:"
+          conda search -c conda-forge libboost-devel | findstr "1.84"
+          
+          echo "=== CREATING ENVIRONMENT ==="
+          echo "Command: conda create --name rdkit_build -c conda-forge --override-channels boost=1.84 boost-cpp=1.84 libboost=1.84 libboost-devel=1.84 cairo eigen cmake"
           conda create --name rdkit_build -c conda-forge --override-channels ^
               boost=1.84 boost-cpp=1.84 ^
               libboost=1.84 ^
               libboost-devel=1.84 ^
               cairo eigen cmake
           
+          echo "=== ENVIRONMENT CREATION RESULT ==="
+          echo "Exit code: %errorlevel%"
+          
           if errorlevel 1 (
             echo "ERROR: Failed to create conda environment!"
-            echo "Trying with different package specifications..."
+            echo "=== TRYING FALLBACK ==="
+            echo "Command: conda create --name rdkit_build -c conda-forge --override-channels boost boost-cpp libboost libboost-devel cairo eigen cmake"
             conda create --name rdkit_build -c conda-forge --override-channels ^
                 boost boost-cpp libboost libboost-devel cairo eigen cmake
+            echo "Fallback exit code: %errorlevel%"
           )
           
-          echo "Activating environment and configuring channels..."
-          call conda activate rdkit_build
-          conda config --env --add channels conda-forge
-          conda config --env --set channel_priority strict
-          
-          echo "Verifying environment creation..."
+          echo "=== LISTING ALL ENVIRONMENTS ==="
           conda info --envs
           
-          echo "Testing environment activation..."
+          echo "=== ACTIVATING AND CONFIGURING ENVIRONMENT ==="
           call conda activate rdkit_build
+          echo "Activation exit code: %errorlevel%"
+          
+          conda config --env --add channels conda-forge
+          echo "Added conda-forge channel"
+          
+          conda config --env --set channel_priority strict
+          echo "Set channel priority to strict"
+          
+          echo "=== VERIFYING ENVIRONMENT ==="
+          conda info --envs
+          
+          echo "=== TESTING ENVIRONMENT ACTIVATION ==="
+          call conda activate rdkit_build
+          echo "Final activation exit code: %errorlevel%"
+          
+          echo "=== LISTING INSTALLED PACKAGES ==="
           conda list
+          
+          echo "=== CHECKING SPECIFIC PACKAGES ==="
+          conda list | findstr boost
+          conda list | findstr cairo
+          conda list | findstr eigen
+          conda list | findstr cmake
 
       - name: Verify conda environment
         shell: cmd
