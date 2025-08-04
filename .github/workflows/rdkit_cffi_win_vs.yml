@@ -45,7 +45,23 @@ jobs:
           conda config --set solver libmamba
           
           echo "Creating rdkit_build environment..."
-          conda create --name rdkit_build -c conda-forge boost=1.84 boost-cpp=1.84 libboost=1.84 libboost-devel=1.84 cairo eigen cmake
+          conda create --name rdkit_build -c conda-forge --override-channels ^
+              boost=1.84 boost-cpp=1.84 ^
+              libboost=1.84 ^
+              libboost-devel=1.84 ^
+              cairo eigen cmake
+          
+          if errorlevel 1 (
+            echo "ERROR: Failed to create conda environment!"
+            echo "Trying with different package specifications..."
+            conda create --name rdkit_build -c conda-forge --override-channels ^
+                boost boost-cpp libboost libboost-devel cairo eigen cmake
+          )
+          
+          echo "Activating environment and configuring channels..."
+          call conda activate rdkit_build
+          conda config --env --add channels conda-forge
+          conda config --env --set channel_priority strict
           
           echo "Verifying environment creation..."
           conda info --envs
