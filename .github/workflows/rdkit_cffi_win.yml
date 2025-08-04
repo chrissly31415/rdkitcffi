@@ -64,10 +64,26 @@ jobs:
         shell: msys2 {0}
         run: |
           cd rdkit/Code/MinimalLib
-          # Check if patch is already applied
-          if ! grep -q "updateSmilesWriteParamsFromJSON" cffiwrapper.cpp; then
-            # Add missing function implementations to fix linking errors
-            # Insert the missing functions after "using namespace RDKit;"
+          echo "=== CFFI WRAPPER PATCH DEBUG ==="
+          
+          echo "Checking if cffiwrapper.cpp exists..."
+          ls -la cffiwrapper.cpp
+          
+          echo "Checking current content around 'using namespace RDKit;'..."
+          grep -n "using namespace RDKit;" cffiwrapper.cpp || echo "Pattern not found"
+          
+          echo "Checking if patch is already applied..."
+          if grep -q "updateSmilesWriteParamsFromJSON" cffiwrapper.cpp; then
+            echo "Patch already applied - found updateSmilesWriteParamsFromJSON"
+            grep -n "updateSmilesWriteParamsFromJSON" cffiwrapper.cpp
+          else
+            echo "Patch not found - applying..."
+            
+            # Create a backup
+            cp cffiwrapper.cpp cffiwrapper.cpp.backup
+            
+            # Try the sed approach first
+            echo "Attempting sed patch..."
             sed -i '/using namespace RDKit;/a\
             // Patch for missing functions in this RDKit version\
             namespace RDKit {\
@@ -78,10 +94,43 @@ jobs:
               // Empty implementation - not needed for CFFI\
             }\
             }' cffiwrapper.cpp
-            echo "Patch applied"
-          else
-            echo "Patch already applied"
+            
+            # Verify the patch was applied
+            if grep -q "updateSmilesWriteParamsFromJSON" cffiwrapper.cpp; then
+              echo "✅ Sed patch applied successfully"
+              grep -n "updateSmilesWriteParamsFromJSON" cffiwrapper.cpp
+            else
+              echo "❌ Sed patch failed, trying alternative approach..."
+              
+              # Alternative: append to end of file
+              echo "" >> cffiwrapper.cpp
+              echo "// Patch for missing functions in this RDKit version" >> cffiwrapper.cpp
+              echo "namespace RDKit {" >> cffiwrapper.cpp
+              echo "void updateSmilesWriteParamsFromJSON(SmilesWriteParams&, const char*) {" >> cffiwrapper.cpp
+              echo "  // Empty implementation - not needed for CFFI" >> cffiwrapper.cpp
+              echo "}" >> cffiwrapper.cpp
+              echo "void updateCXSmilesFieldsFromJSON(SmilesWrite::CXSmilesFields&, RestoreBondDirOption&, const char*) {" >> cffiwrapper.cpp
+              echo "  // Empty implementation - not needed for CFFI" >> cffiwrapper.cpp
+              echo "}" >> cffiwrapper.cpp
+              echo "}" >> cffiwrapper.cpp
+              
+              # Verify the alternative patch
+              if grep -q "updateSmilesWriteParamsFromJSON" cffiwrapper.cpp; then
+                echo "✅ Alternative patch applied successfully"
+                grep -n "updateSmilesWriteParamsFromJSON" cffiwrapper.cpp
+              else
+                echo "❌ All patch methods failed!"
+                echo "Restoring backup..."
+                cp cffiwrapper.cpp.backup cffiwrapper.cpp
+                exit 1
+              fi
+            fi
           fi
+          
+          echo "=== FINAL VERIFICATION ==="
+          echo "Checking for both functions:"
+          grep -n "updateSmilesWriteParamsFromJSON\|updateCXSmilesFieldsFromJSON" cffiwrapper.cpp
+          echo "Patch step completed"
 
       - name: Cache CMake and build artifacts
         uses: actions/cache@v4

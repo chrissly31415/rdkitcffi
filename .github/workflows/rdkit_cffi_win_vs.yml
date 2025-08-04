@@ -29,6 +29,37 @@ jobs:
         with:
           auto-update-conda: true
 
+      - name: Verify conda setup
+        shell: cmd
+        run: |
+          echo "=== CONDA SETUP VERIFICATION ==="
+          echo "CONDA environment variable: %CONDA%"
+          echo "CONDA_PREFIX: %CONDA_PREFIX%"
+          echo "CONDA_DEFAULT_ENV: %CONDA_DEFAULT_ENV%"
+          echo "PATH contains conda:"
+          echo %PATH% | findstr conda
+          echo "Testing conda executable:"
+          where conda
+          echo "Conda location exit code: %errorlevel%"
+
+      - name: Test conda basic functionality
+        shell: cmd
+        run: |
+          echo "=== BASIC CONDA TEST ==="
+          echo "Current directory:"
+          cd
+          echo "PATH:"
+          echo %PATH%
+          echo "Testing conda command:"
+          conda --version
+          echo "Conda version exit code: %errorlevel%"
+          echo "Testing conda info:"
+          conda info
+          echo "Conda info exit code: %errorlevel%"
+          echo "Testing conda config:"
+          conda config --show
+          echo "Conda config exit code: %errorlevel%"
+
       - name: Create conda environment
         shell: cmd
         run: |
