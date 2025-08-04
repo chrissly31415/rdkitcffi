@@ -99,8 +99,8 @@ jobs:
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DRDK_BUILD_MINIMAL_LIB=ON \
             -DRDK_BUILD_CFFI_LIB=ON \
+            -DRDK_CFFI_STATIC=ON \
             -DRDK_INSTALL_INTREE=OFF \
-            -DRDK_INSTALL_STATIC_LIBS=OFF \
             -DRDK_BUILD_CPP_TESTS=OFF \
             -DRDK_BUILD_COORDGEN_SUPPORT=ON \
             -DRDK_BUILD_MAEPARSER_SUPPORT=OFF \
@@ -110,7 +110,6 @@ jobs:
             -DRDK_BUILD_AVALON_SUPPORT=ON \
             -DRDK_BUILD_INCHI_SUPPORT=ON \
             -DRDK_BUILD_CAIRO_SUPPORT=ON \
-            -DRDK_CFFI_STATIC=ON \
             -DRDK_BUILD_THREADSAFE_SSS=ON \
             -DRDK_BUILD_SWIG_WRAPPERS=OFF \
             -DRDK_TEST_MULTITHREADED=ON \
