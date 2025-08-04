@@ -42,19 +42,6 @@ jobs:
         run: |
           git clone https://github.com/rdkit/rdkit.git --branch Release_2024_09 --single-branch rdkit --depth=1
 
-      - name: Apply CFFI wrapper patch
-        run: |
-          cd rdkit/Code/MinimalLib
-          # Check if patch is already applied
-          findstr /C:"updateSmilesWriteParamsFromJSON" cffiwrapper.cpp >nul 2>&1
-          if errorlevel 1 (
-            echo Applying CFFI wrapper patch...
-            powershell -Command "(Get-Content cffiwrapper.cpp) -replace 'using namespace RDKit;', 'using namespace RDKit;`n// Patch for missing functions in this RDKit version`nnamespace RDKit {`nvoid updateSmilesWriteParamsFromJSON(SmilesWriteParams&, const char*) {`n  // Empty implementation - not needed for CFFI`n}`nvoid updateCXSmilesFieldsFromJSON(SmilesWrite::CXSmilesFields&, RestoreBondDirOption&, const char*) {`n  // Empty implementation - not needed for CFFI`n}`n}' | Set-Content cffiwrapper.cpp"
-            echo Patch applied
-          ) else (
-            echo Patch already applied
-          )
-
       - name: Cache build artifacts
         uses: actions/cache@v4
         with:
