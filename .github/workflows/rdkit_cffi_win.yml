@@ -138,7 +138,10 @@ jobs:
         shell: msys2 {0}
         run: |
           cd rdkit/build
-          mingw32-make VERBOSE=1 -j 2 rdkitcffi
+          # Build all required RDKit libraries first, then the CFFI library
+          echo "Building RDKit libraries..."
+          mingw32-make VERBOSE=1 -j 2
+          
           # If build fails, show the error log
           if [ $? -ne 0 ]; then
             echo 'Build failed. Showing last 100 lines of error log:'
