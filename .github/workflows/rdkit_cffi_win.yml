@@ -83,20 +83,6 @@ jobs:
             echo "Patch already applied"
           fi
 
-      - name: Fix ML Cluster C code issues
-        shell: msys2 {0}
-        run: |
-          cd rdkit/Code/ML/Cluster/Murtagh
-          # Fix the function declaration mismatch in hc.c
-          if [ -f "hc.c" ]; then
-            echo "Fixing function declarations in hc.c..."
-            # Fix the ioffset_ function declaration to match its usage
-            sed -i 's/extern integer ioffset_();/extern integer ioffset_(integer *n, integer *i, integer *j);/' hc.c
-            echo "Fixed ioffset_ function declaration"
-          else
-            echo "hc.c not found, skipping patch"
-          fi
-
       - name: Cache CMake and build artifacts
         uses: actions/cache@v4
         with:
@@ -159,8 +145,8 @@ jobs:
             -DCMAKE_LIBRARY_PATH='/mingw64/lib;/mingw64/x86_64-w64-mingw32/lib' \
             -DCMAKE_EXE_LINKER_FLAGS='-Wl,--allow-shlib-undefined' \
             -DCMAKE_SHARED_LINKER_FLAGS='-Wl,--allow-shlib-undefined' \
-            -DCMAKE_C_FLAGS='-Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign' \
-            -DCMAKE_CXX_FLAGS='-Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign'
+            -DCMAKE_C_FLAGS='-std=gnu17 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign' \
+            -DCMAKE_CXX_FLAGS='-std=gnu++17 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign'
 
       - name: Build
         shell: msys2 {0}
