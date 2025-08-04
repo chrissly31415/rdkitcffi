@@ -30,15 +30,13 @@ jobs:
           auto-update-conda: true
 
       - name: Create conda environment
+        shell: cmd
         run: |
           conda config --set always_yes yes --set changeps1 no
           conda info -a
           conda install -n base conda-libmamba-solver
           conda config --set solver libmamba
-          conda create --name rdkit_build -c conda-forge ^
-              boost=1.84 boost-cpp=1.84 ^
-              libboost=1.84 libboost-devel=1.84 ^
-              cairo eigen cmake
+          conda create --name rdkit_build -c conda-forge boost=1.84 boost-cpp=1.84 libboost=1.84 libboost-devel=1.84 cairo eigen cmake
 
       - name: Clone main RDKit repo
         run: |
@@ -71,11 +69,12 @@ jobs:
             ${{ runner.os }}-rdkit-vs-build-
 
       - name: Configure build (Run CMake)
+        shell: cmd
         run: |
           set Boost_ROOT=
           cd rdkit
           mkdir build && cd build
-          call activate rdkit_build
+          call conda activate rdkit_build
           cmake .. ^
             -G "Visual Studio 17 2022" ^
             -A x64 ^
@@ -108,9 +107,10 @@ jobs:
             -DCMAKE_LIBRARY_PATH=%CONDA_PREFIX%/Library/lib
 
       - name: Build
+        shell: cmd
         run: |
           cd rdkit/build
-          call activate rdkit_build
+          call conda activate rdkit_build
           cmake --build . --config Release --target rdkitcffi -j 2
           
           # If build fails, show the error log

@@ -104,7 +104,7 @@ jobs:
             -G 'MSYS Makefiles' \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DRDK_BUILD_CFFI_LIB=ON \
-            -DRDK_BUILD_MINIMAL_LIB=ON \
+            -DRDK_BUILD_MINIMAL_LIB=OFF \
             -DRDK_CFFI_STATIC=OFF \
             -DRDK_INSTALL_INTREE=OFF \
             -DRDK_BUILD_CPP_TESTS=OFF \
