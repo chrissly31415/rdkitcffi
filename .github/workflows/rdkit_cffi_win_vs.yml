@@ -33,30 +33,48 @@ jobs:
         shell: cmd
         run: |
           echo "=== CONDA ENVIRONMENT CREATION DEBUG ==="
+          
+          echo "=== CHECKING CONDA INSTALLATION ==="
+          where conda
+          conda --version
+          echo "Conda location check exit code: %errorlevel%"
+          
+          echo "=== CHECKING CONDA CONFIG ==="
+          conda config --show
+          echo "Config check exit code: %errorlevel%"
+          
           echo "Setting up conda configuration..."
           conda config --set always_yes yes --set changeps1 no
-          echo "Config set successfully"
+          echo "Config set successfully, exit code: %errorlevel%"
           
           echo "=== CONDA INFO ==="
           conda info -a
+          echo "Info exit code: %errorlevel%"
           
           echo "=== INSTALLING LIBMAMBA SOLVER ==="
           conda install -n base conda-libmamba-solver
-          echo "Libmamba solver installed"
+          echo "Libmamba solver installed, exit code: %errorlevel%"
           
           echo "=== SETTING SOLVER ==="
           conda config --set solver libmamba
-          echo "Solver set to libmamba"
+          echo "Solver set to libmamba, exit code: %errorlevel%"
           
           echo "=== CHECKING AVAILABLE PACKAGES ==="
           echo "Checking boost packages:"
           conda search -c conda-forge boost | findstr "1.84"
+          echo "Boost search exit code: %errorlevel%"
+          
           echo "Checking boost-cpp packages:"
           conda search -c conda-forge boost-cpp | findstr "1.84"
+          echo "Boost-cpp search exit code: %errorlevel%"
+          
           echo "Checking libboost packages:"
           conda search -c conda-forge libboost | findstr "1.84"
+          echo "Libboost search exit code: %errorlevel%"
+          
           echo "Checking libboost-devel packages:"
           conda search -c conda-forge libboost-devel | findstr "1.84"
+          echo "Libboost-devel search exit code: %errorlevel%"
           
           echo "=== CREATING ENVIRONMENT ==="
           echo "Command: conda create --name rdkit_build -c conda-forge --override-channels boost=1.84 boost-cpp=1.84 libboost=1.84 libboost-devel=1.84 cairo eigen cmake"
@@ -80,16 +98,17 @@ jobs:
           
           echo "=== LISTING ALL ENVIRONMENTS ==="
           conda info --envs
+          echo "Environments list exit code: %errorlevel%"
           
           echo "=== ACTIVATING AND CONFIGURING ENVIRONMENT ==="
           call conda activate rdkit_build
           echo "Activation exit code: %errorlevel%"
           
           conda config --env --add channels conda-forge
-          echo "Added conda-forge channel"
+          echo "Added conda-forge channel, exit code: %errorlevel%"
           
           conda config --env --set channel_priority strict
-          echo "Set channel priority to strict"
+          echo "Set channel priority to strict, exit code: %errorlevel%"
           
           echo "=== VERIFYING ENVIRONMENT ==="
           conda info --envs
