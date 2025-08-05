@@ -34,17 +34,17 @@ jobs:
       - name: Create environment file
         shell: cmd
         run: |
-          echo "Creating environment file..."
-          echo "name: rdkit_build" > environment.yml
-          echo "channels:" >> environment.yml
-          echo "  - conda-forge" >> environment.yml
-          echo "dependencies:" >> environment.yml
-          echo "  - boost=1.84" >> environment.yml
-          echo "  - boost-cpp=1.84" >> environment.yml
-          echo "  - cairo" >> environment.yml
-          echo "  - eigen" >> environment.yml
-          echo "  - cmake" >> environment.yml
-          echo "Environment file created:"
+          echo Creating environment file...
+          echo name: rdkit_build > environment.yml
+          echo channels: >> environment.yml
+          echo   - conda-forge >> environment.yml
+          echo dependencies: >> environment.yml
+          echo   - boost=1.84 >> environment.yml
+          echo   - boost-cpp=1.84 >> environment.yml
+          echo   - cairo >> environment.yml
+          echo   - eigen >> environment.yml
+          echo   - cmake >> environment.yml
+          echo Environment file created:
           type environment.yml
 
       - name: Create conda environment
