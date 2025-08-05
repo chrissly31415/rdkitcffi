@@ -107,24 +107,49 @@ jobs:
           conda search -c conda-forge libboost-devel | findstr "1.84"
           echo "Libboost-devel search exit code: %errorlevel%"
           
+          echo "=== CHECKING EXISTING ENVIRONMENTS ==="
+          echo "Current environments:"
+          conda info --envs
+          echo "Checking if rdkit_build already exists:"
+          conda info --envs | findstr rdkit_build
+          if not errorlevel 1 (
+            echo "WARNING: rdkit_build environment already exists!"
+            echo "Removing existing environment..."
+            conda env remove --name rdkit_build
+            echo "Environment removal exit code: %errorlevel%"
+          )
+          
           echo "=== CREATING ENVIRONMENT ==="
           echo "Command: conda create --name rdkit_build -c conda-forge --override-channels boost=1.84 boost-cpp=1.84 libboost=1.84 libboost-devel=1.84 cairo eigen cmake"
+          
+          # Capture the actual output
           conda create --name rdkit_build -c conda-forge --override-channels ^
               boost=1.84 boost-cpp=1.84 ^
               libboost=1.84 ^
               libboost-devel=1.84 ^
-              cairo eigen cmake
+              cairo eigen cmake 2>&1
           
           echo "=== ENVIRONMENT CREATION RESULT ==="
           echo "Exit code: %errorlevel%"
           
           if errorlevel 1 (
             echo "ERROR: Failed to create conda environment!"
-            echo "=== TRYING FALLBACK ==="
-            echo "Command: conda create --name rdkit_build -c conda-forge --override-channels boost boost-cpp libboost libboost-devel cairo eigen cmake"
-            conda create --name rdkit_build -c conda-forge --override-channels ^
-                boost boost-cpp libboost libboost-devel cairo eigen cmake
-            echo "Fallback exit code: %errorlevel%"
+            echo "=== TRYING SIMPLER FALLBACK ==="
+            echo "Command: conda create --name rdkit_build -c conda-forge boost boost-cpp cairo eigen cmake"
+            
+            # Try with simpler package list
+            conda create --name rdkit_build -c conda-forge boost boost-cpp cairo eigen cmake 2>&1
+            echo "Simpler fallback exit code: %errorlevel%"
+            
+            if errorlevel 1 (
+              echo "ERROR: Even simpler fallback failed!"
+              echo "=== TRYING MINIMAL ENVIRONMENT ==="
+              echo "Command: conda create --name rdkit_build -c conda-forge cmake"
+              
+              # Try with just cmake
+              conda create --name rdkit_build -c conda-forge cmake 2>&1
+              echo "Minimal fallback exit code: %errorlevel%"
+            )
           )
           
           echo "=== LISTING ALL ENVIRONMENTS ==="
