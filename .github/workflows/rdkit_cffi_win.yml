@@ -77,6 +77,16 @@ jobs:
         shell: msys2 {0}
         run: |
           cd rdkit && mkdir -p build && cd build
+          
+          echo "=== DEBUGGING C++ STANDARD FLAGS ==="
+          echo "Checking compiler version and defaults:"
+          g++ --version
+          echo "Checking default C++ standard:"
+          g++ -dM -E -x c++ /dev/null | grep -i "cplusplus\|std"
+          echo "Checking CMake C++ standard variables:"
+          cmake .. -G 'MSYS Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -L | grep -i "cxx.*standard"
+          
+          echo "=== RUNNING FULL CMAKE CONFIGURATION ==="
           cmake .. \
             -G 'MSYS Makefiles' \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -117,7 +127,10 @@ jobs:
             -DCMAKE_EXE_LINKER_FLAGS='-Wl,--allow-shlib-undefined' \
             -DCMAKE_SHARED_LINKER_FLAGS='-Wl,--allow-shlib-undefined' \
             -DCMAKE_C_FLAGS='-std=c11 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign' \
-            -DCMAKE_CXX_FLAGS='-std=c++14 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign'
+            -DCMAKE_CXX_FLAGS='-std=c++14 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign' \
+            -DCMAKE_CXX_STANDARD=14 \
+            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+            -DCMAKE_CXX_EXTENSIONS=OFF
 
       - name: Build
         shell: msys2 {0}
