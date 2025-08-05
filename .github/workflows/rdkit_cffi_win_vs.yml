@@ -28,177 +28,45 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
+          conda-solver: libmamba
+          use-only-tar-bz2: true
 
-      - name: Verify conda setup
+      - name: Create environment file
         shell: cmd
         run: |
-          echo "=== CONDA SETUP VERIFICATION ==="
-          echo "CONDA environment variable: %CONDA%"
-          echo "CONDA_PREFIX: %CONDA_PREFIX%"
-          echo "CONDA_DEFAULT_ENV: %CONDA_DEFAULT_ENV%"
-          echo "PATH contains conda:"
-          echo %PATH% | findstr conda
-          echo "Testing conda executable:"
-          where conda
-          echo "Conda location exit code: %errorlevel%"
-
-      - name: Test conda basic functionality
-        shell: cmd
-        run: |
-          echo "=== BASIC CONDA TEST ==="
-          echo "Current directory:"
-          cd
-          echo "PATH:"
-          echo %PATH%
-          echo "Testing conda command:"
-          conda --version
-          echo "Conda version exit code: %errorlevel%"
-          echo "Testing conda info:"
-          conda info
-          echo "Conda info exit code: %errorlevel%"
-          echo "Testing conda config:"
-          conda config --show
-          echo "Conda config exit code: %errorlevel%"
+          echo "Creating environment file..."
+          echo "name: rdkit_build" > environment.yml
+          echo "channels:" >> environment.yml
+          echo "  - conda-forge" >> environment.yml
+          echo "dependencies:" >> environment.yml
+          echo "  - boost=1.84" >> environment.yml
+          echo "  - boost-cpp=1.84" >> environment.yml
+          echo "  - cairo" >> environment.yml
+          echo "  - eigen" >> environment.yml
+          echo "  - cmake" >> environment.yml
+          echo "Environment file created:"
+          type environment.yml
 
       - name: Create conda environment
-        shell: cmd
+        shell: cmd /C CALL {0}
         run: |
-          echo "=== CONDA ENVIRONMENT CREATION DEBUG ==="
-          
-          echo "=== CHECKING CONDA INSTALLATION ==="
-          where conda
-          conda --version
-          echo "Conda location check exit code: %errorlevel%"
-          
-          echo "=== CHECKING CONDA CONFIG ==="
-          conda config --show
-          echo "Config check exit code: %errorlevel%"
-          
-          echo "Setting up conda configuration..."
-          conda config --set always_yes yes --set changeps1 no
-          echo "Config set successfully, exit code: %errorlevel%"
-          
-          echo "=== CONDA INFO ==="
-          conda info -a
-          echo "Info exit code: %errorlevel%"
-          
-          echo "=== INSTALLING LIBMAMBA SOLVER ==="
-          conda install -n base conda-libmamba-solver
-          echo "Libmamba solver installed, exit code: %errorlevel%"
-          
-          echo "=== SETTING SOLVER ==="
-          conda config --set solver libmamba
-          echo "Solver set to libmamba, exit code: %errorlevel%"
-          
-          echo "=== CHECKING AVAILABLE PACKAGES ==="
-          echo "Checking boost packages:"
-          conda search -c conda-forge boost | findstr "1.84"
-          echo "Boost search exit code: %errorlevel%"
-          
-          echo "Checking boost-cpp packages:"
-          conda search -c conda-forge boost-cpp | findstr "1.84"
-          echo "Boost-cpp search exit code: %errorlevel%"
-          
-          echo "Checking libboost packages:"
-          conda search -c conda-forge libboost | findstr "1.84"
-          echo "Libboost search exit code: %errorlevel%"
-          
-          echo "Checking libboost-devel packages:"
-          conda search -c conda-forge libboost-devel | findstr "1.84"
-          echo "Libboost-devel search exit code: %errorlevel%"
-          
-          echo "=== CHECKING EXISTING ENVIRONMENTS ==="
-          echo "Current environments:"
-          conda info --envs
-          echo "Checking if rdkit_build already exists:"
-          conda info --envs | findstr rdkit_build
-          if not errorlevel 1 (
-            echo "WARNING: rdkit_build environment already exists!"
-            echo "Removing existing environment..."
-            conda env remove --name rdkit_build
-            echo "Environment removal exit code: %errorlevel%"
-          )
-          
-          echo "=== CREATING ENVIRONMENT ==="
-          echo "Command: conda create --name rdkit_build -c conda-forge --override-channels boost=1.84 boost-cpp=1.84 libboost=1.84 libboost-devel=1.84 cairo eigen cmake"
-          
-          # Test with a simple command first
-          echo "=== TESTING SIMPLE ENVIRONMENT CREATION ==="
-          conda create --name rdkit_build_test -c conda-forge cmake
-          echo "Simple test exit code: %errorlevel%"
+          echo "=== CREATING CONDA ENVIRONMENT ==="
+          conda env create -f environment.yml
+          echo "Environment creation exit code: %errorlevel%"
           
           if errorlevel 1 (
-            echo "ERROR: Even simple environment creation failed!"
-            echo "=== TRYING WITHOUT CHANNEL ==="
-            conda create --name rdkit_build_test2 cmake
-            echo "No channel test exit code: %errorlevel%"
-          ) else (
-            echo "✅ Simple environment creation succeeded!"
-            echo "=== TRYING FULL ENVIRONMENT ==="
-            
-            # Capture the actual output
-            conda create --name rdkit_build -c conda-forge --override-channels ^
-                boost=1.84 boost-cpp=1.84 ^
-                libboost=1.84 ^
-                libboost-devel=1.84 ^
-                cairo eigen cmake 2>&1
-            
-            echo "=== ENVIRONMENT CREATION RESULT ==="
-            echo "Exit code: %errorlevel%"
-            
-            if errorlevel 1 (
-              echo "ERROR: Failed to create conda environment!"
-              echo "=== TRYING SIMPLER FALLBACK ==="
-              echo "Command: conda create --name rdkit_build -c conda-forge boost boost-cpp cairo eigen cmake"
-              
-              # Try with simpler package list
-              conda create --name rdkit_build -c conda-forge boost boost-cpp cairo eigen cmake 2>&1
-              echo "Simpler fallback exit code: %errorlevel%"
-              
-              if errorlevel 1 (
-                echo "ERROR: Even simpler fallback failed!"
-                echo "=== TRYING MINIMAL ENVIRONMENT ==="
-                echo "Command: conda create --name rdkit_build -c conda-forge cmake"
-                
-                # Try with just cmake
-                conda create --name rdkit_build -c conda-forge cmake 2>&1
-                echo "Minimal fallback exit code: %errorlevel%"
-              )
-            )
+            echo "ERROR: Failed to create environment from file!"
+            echo "=== TRYING MANUAL CREATION ==="
+            conda create --name rdkit_build -c conda-forge boost boost-cpp cairo eigen cmake
+            echo "Manual creation exit code: %errorlevel%"
           )
-          
-          echo "=== LISTING ALL ENVIRONMENTS ==="
-          conda info --envs
-          echo "Environments list exit code: %errorlevel%"
-          
-          echo "=== ACTIVATING AND CONFIGURING ENVIRONMENT ==="
-          call conda activate rdkit_build
-          echo "Activation exit code: %errorlevel%"
-          
-          conda config --env --add channels conda-forge
-          echo "Added conda-forge channel, exit code: %errorlevel%"
-          
-          conda config --env --set channel_priority strict
-          echo "Set channel priority to strict, exit code: %errorlevel%"
           
           echo "=== VERIFYING ENVIRONMENT ==="
           conda info --envs
-          
-          echo "=== TESTING ENVIRONMENT ACTIVATION ==="
-          call conda activate rdkit_build
-          echo "Final activation exit code: %errorlevel%"
-          
-          echo "=== LISTING INSTALLED PACKAGES ==="
-          conda list
-          
-          echo "=== CHECKING SPECIFIC PACKAGES ==="
-          conda list | findstr boost
-          conda list | findstr cairo
-          conda list | findstr eigen
-          conda list | findstr cmake
+          conda list -n rdkit_build
 
       - name: Verify conda environment
-        shell: cmd
+        shell: cmd /C CALL {0}
         run: |
           echo "Verifying rdkit_build environment exists..."
           conda info --envs | findstr rdkit_build
@@ -209,7 +77,7 @@ jobs:
             exit 1
           )
           echo "Environment found, testing activation..."
-          call conda activate rdkit_build
+          conda activate rdkit_build
           echo "Environment activated successfully!"
           conda list | findstr boost
 
@@ -231,12 +99,12 @@ jobs:
             ${{ runner.os }}-rdkit-vs-build-
 
       - name: Configure build (Run CMake)
-        shell: cmd
+        shell: cmd /C CALL {0}
         run: |
           set Boost_ROOT=
           cd rdkit
           mkdir build && cd build
-          call conda activate rdkit_build
+          conda activate rdkit_build
           cmake .. ^
             -G "Visual Studio 17 2022" ^
             -A x64 ^
@@ -269,10 +137,10 @@ jobs:
             -DCMAKE_LIBRARY_PATH=%CONDA_PREFIX%/Library/lib
 
       - name: Build
-        shell: cmd
+        shell: cmd /C CALL {0}
         run: |
           cd rdkit/build
-          call conda activate rdkit_build
+          conda activate rdkit_build
           cmake --build . --config Release --target rdkitcffi -j 2
           
           # If build fails, show the error log

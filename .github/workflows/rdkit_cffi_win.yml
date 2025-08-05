@@ -58,7 +58,7 @@ jobs:
       - name: Clone main RDKit repo
         shell: msys2 {0}
         run: |
-          git clone https://github.com/rdkit/rdkit.git --branch Release_2024_09 --single-branch rdkit --depth=1
+          git clone https://github.com/rdkit/rdkit.git --branch Release_2025_03 --single-branch rdkit --depth=1
 
       - name: Cache CMake and build artifacts
         uses: actions/cache@v4
@@ -118,32 +118,6 @@ jobs:
             -DCMAKE_SHARED_LINKER_FLAGS='-Wl,--allow-shlib-undefined' \
             -DCMAKE_C_FLAGS='-std=c17 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign' \
             -DCMAKE_CXX_FLAGS='-std=c++17 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign'
-
-      - name: Verify patch before build
-        shell: msys2 {0}
-        run: |
-          echo "=== VERIFYING PATCH BEFORE BUILD ==="
-          cd rdkit/Code/MinimalLib
-          echo "Checking if patch is still present:"
-          grep -n "updateSmilesWriteParamsFromJSON\|updateCXSmilesFieldsFromJSON" cffiwrapper.cpp
-          if [ $? -ne 0 ]; then
-            echo "❌ PATCH IS MISSING - reapplying..."
-            # Reapply the patch
-            sed -i '/using namespace RDKit;/a\
-            // Patch for missing functions in this RDKit version\
-            namespace RDKit {\
-            void updateSmilesWriteParamsFromJSON(SmilesWriteParams&, const char*) {\
-              // Empty implementation - not needed for CFFI\
-            }\
-            void updateCXSmilesFieldsFromJSON(SmilesWrite::CXSmilesFields&, RestoreBondDirOption&, const char*) {\
-              // Empty implementation - not needed for CFFI\
-            }\
-            }' cffiwrapper.cpp
-            echo "Patch reapplied"
-            grep -n "updateSmilesWriteParamsFromJSON\|updateCXSmilesFieldsFromJSON" cffiwrapper.cpp
-          else
-            echo "✅ Patch is still present"
-          fi
 
       - name: Build
         shell: msys2 {0}
