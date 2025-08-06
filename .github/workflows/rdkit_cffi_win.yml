@@ -1,4 +1,4 @@
-name: RDKit CFFI Windows 2024.09
+name: RDKit CFFI Windows 2025.03
 
 on:
   workflow_dispatch:
@@ -106,7 +106,6 @@ jobs:
             -DRDK_BUILD_SWIG_WRAPPERS=OFF \
             -DRDK_SWIG_STATIC=OFF \
             -DRDK_TEST_MULTITHREADED=ON \
-            -DRDK_INSTALL_DLLS_MSVC=ON \
             -DRDK_BUILD_PYTHON_WRAPPERS=OFF \
             -DRDK_BUILD_PGSQL=OFF \
             -DRDK_PGSQL_STATIC=OFF \
@@ -129,9 +128,7 @@ jobs:
             -DCMAKE_SHARED_LINKER_FLAGS='-Wl,--allow-shlib-undefined' \
             -DCMAKE_C_FLAGS='-std=c11 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign' \
             -DCMAKE_CXX_FLAGS='-std=c++14 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign' \
-            -DCMAKE_CXX_STANDARD=14 \
-            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
-            -DCMAKE_CXX_EXTENSIONS=OFF
+            -DCMAKE_CXX_STANDARD=14 
           
           if [ $? -ne 0 ]; then
             echo "=== CMAKE CONFIGURATION FAILED ==="
@@ -156,7 +153,7 @@ jobs:
           cd rdkit/build
           # Build all required RDKit libraries first, then the CFFI library
           echo "Building RDKit libraries..."
-          mingw32-make VERBOSE=1 -j 2
+          mingw32-make VERBOSE=1 
           
           # If build fails, show the error log
           if [ $? -ne 0 ]; then
