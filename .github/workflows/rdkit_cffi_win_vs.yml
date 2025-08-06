@@ -48,38 +48,40 @@ jobs:
           type environment.yml
 
       - name: Create conda environment
-        shell: cmd /C CALL {0}
+        shell: powershell
         run: |
-          echo "=== CREATING CONDA ENVIRONMENT ==="
+          Write-Host "=== CREATING CONDA ENVIRONMENT ==="
           conda env create -f environment.yml
-          echo "Environment creation exit code: %errorlevel%"
+          $envCreationCode = $LASTEXITCODE
+          Write-Host "Environment creation exit code: $envCreationCode"
           
-          if errorlevel 1 (
-            echo "ERROR: Failed to create environment from file!"
-            echo "=== TRYING MANUAL CREATION ==="
+          if ($envCreationCode -ne 0) {
+            Write-Host "ERROR: Failed to create environment from file!"
+            Write-Host "=== TRYING MANUAL CREATION ==="
             conda create --name rdkit_build -c conda-forge boost boost-cpp cairo eigen cmake
-            echo "Manual creation exit code: %errorlevel%"
-          )
+            $manualCreationCode = $LASTEXITCODE
+            Write-Host "Manual creation exit code: $manualCreationCode"
+          }
           
-          echo "=== VERIFYING ENVIRONMENT ==="
+          Write-Host "=== VERIFYING ENVIRONMENT ==="
           conda info --envs
           conda list -n rdkit_build
 
       - name: Verify conda environment
-        shell: cmd /C CALL {0}
+        shell: powershell
         run: |
-          echo "Verifying rdkit_build environment exists..."
-          conda info --envs | findstr rdkit_build
-          if errorlevel 1 (
-            echo "ERROR: rdkit_build environment not found!"
-            echo "Available environments:"
+          Write-Host "Verifying rdkit_build environment exists..."
+          $envCheck = conda info --envs | Select-String "rdkit_build"
+          if (-not $envCheck) {
+            Write-Host "ERROR: rdkit_build environment not found!"
+            Write-Host "Available environments:"
             conda info --envs
             exit 1
-          )
-          echo "Environment found, testing activation..."
+          }
+          Write-Host "Environment found, testing activation..."
           conda activate rdkit_build
-          echo "Environment activated successfully!"
-          conda list | findstr boost
+          Write-Host "Environment activated successfully!"
+          conda list | Select-String "boost"
 
       - name: Clone main RDKit repo
         run: |
@@ -99,128 +101,160 @@ jobs:
             ${{ runner.os }}-rdkit-vs-build-
 
       - name: Configure build (Run CMake)
-        shell: cmd /C CALL {0}
+        shell: powershell
         run: |
-          set Boost_ROOT=
-          cd rdkit
-          mkdir build && cd build
+          $env:Boost_ROOT = ""
+          Set-Location rdkit
+          New-Item -ItemType Directory -Name build -Force
+          Set-Location build
+          
+          Write-Host "=== ACTIVATING CONDA ENVIRONMENT ==="
           conda activate rdkit_build
-          cmake .. ^
-            -G "Visual Studio 17 2022" ^
-            -A x64 ^
-            -DCMAKE_BUILD_TYPE=Release ^
-            -DRDK_BUILD_CFFI_LIB=ON ^
-            -DRDK_BUILD_MINIMAL_LIB=ON ^
-            -DRDK_CFFI_STATIC=ON ^
-            -DRDK_INSTALL_INTREE=ON ^
-            -DRDK_INSTALL_STATIC_LIBS=OFF ^
-            -DRDK_INSTALL_DLLS_MSVC=ON ^
-            -DRDK_BUILD_CPP_TESTS=OFF ^
-            -DRDK_BUILD_PYTHON_WRAPPERS=OFF ^
-            -DRDK_BUILD_COORDGEN_SUPPORT=ON ^
-            -DRDK_BUILD_MAEPARSER_SUPPORT=ON ^
-            -DRDK_OPTIMIZE_POPCNT=ON ^
-            -DRDK_BUILD_TEST_GZIP=ON ^
-            -DRDK_BUILD_FREESASA_SUPPORT=ON ^
-            -DRDK_BUILD_AVALON_SUPPORT=ON ^
-            -DRDK_BUILD_INCHI_SUPPORT=ON ^
-            -DRDK_BUILD_YAEHMOP_SUPPORT=ON ^
-            -DRDK_BUILD_XYZ2MOL_SUPPORT=ON ^
-            -DRDK_BUILD_CAIRO_SUPPORT=ON ^
-            -DRDK_BUILD_THREADSAFE_SSS=ON ^
-            -DRDK_BUILD_SWIG_WRAPPERS=OFF ^
-            -DRDK_SWIG_STATIC=OFF ^
-            -DRDK_TEST_MULTITHREADED=ON ^
-            -DRDK_USE_BOOST_SERIALIZATION=ON ^
-            -DRDK_USE_BOOST_IOSTREAMS=ON ^
-            -DCMAKE_INCLUDE_PATH=%CONDA_PREFIX%/Library/include ^
-            -DCMAKE_LIBRARY_PATH=%CONDA_PREFIX%/Library/lib
+          Write-Host "Conda environment: $env:CONDA_DEFAULT_ENV"
+          Write-Host "Conda prefix: $env:CONDA_PREFIX"
+          
+          cmake .. `
+            -G "Visual Studio 17 2022" `
+            -A x64 `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DRDK_BUILD_CFFI_LIB=ON `
+            -DRDK_BUILD_MINIMAL_LIB=ON `
+            -DRDK_CFFI_STATIC=ON `
+            -DRDK_INSTALL_INTREE=ON `
+            -DRDK_INSTALL_STATIC_LIBS=OFF `
+            -DRDK_INSTALL_DLLS_MSVC=ON `
+            -DRDK_BUILD_CPP_TESTS=OFF `
+            -DRDK_BUILD_PYTHON_WRAPPERS=OFF `
+            -DRDK_BUILD_COORDGEN_SUPPORT=ON `
+            -DRDK_BUILD_MAEPARSER_SUPPORT=ON `
+            -DRDK_OPTIMIZE_POPCNT=ON `
+            -DRDK_BUILD_TEST_GZIP=ON `
+            -DRDK_BUILD_FREESASA_SUPPORT=ON `
+            -DRDK_BUILD_AVALON_SUPPORT=ON `
+            -DRDK_BUILD_INCHI_SUPPORT=ON `
+            -DRDK_BUILD_YAEHMOP_SUPPORT=ON `
+            -DRDK_BUILD_XYZ2MOL_SUPPORT=ON `
+            -DRDK_BUILD_CAIRO_SUPPORT=ON `
+            -DRDK_BUILD_THREADSAFE_SSS=ON `
+            -DRDK_BUILD_SWIG_WRAPPERS=OFF `
+            -DRDK_SWIG_STATIC=OFF `
+            -DRDK_TEST_MULTITHREADED=ON `
+            -DRDK_USE_BOOST_SERIALIZATION=ON `
+            -DRDK_USE_BOOST_IOSTREAMS=ON `
+            -DCMAKE_INCLUDE_PATH="$env:CONDA_PREFIX/Library/include" `
+            -DCMAKE_LIBRARY_PATH="$env:CONDA_PREFIX/Library/lib"
 
       - name: Build
-        shell: cmd /C CALL {0}
+        shell: powershell
         run: |
-          echo "=== STARTING BUILD ==="
-          echo "Current directory:"
-          cd
-          echo "Changing to build directory..."
-          cd rdkit/build
-          echo "Current directory after cd:"
-          cd
+          Write-Host "=== STARTING BUILD ==="
+          Write-Host "Current directory:"
+          Get-Location
+          Write-Host "Changing to build directory..."
+          Set-Location rdkit/build
+          Write-Host "Current directory after cd:"
+          Get-Location
           
-          echo "=== CONDA ENVIRONMENT ACTIVATION ==="
-          echo "Available conda environments:"
+          Write-Host "=== CONDA ENVIRONMENT ACTIVATION ==="
+          Write-Host "Available conda environments:"
           conda info --envs
-          echo "Activating rdkit_build environment..."
+          Write-Host "Activating rdkit_build environment..."
           conda activate rdkit_build
-          echo "Conda activation exit code: %errorlevel%"
-          echo "Current conda environment:"
-          echo %CONDA_DEFAULT_ENV%
-          echo "Conda prefix:"
-          echo %CONDA_PREFIX%
+          $activationCode = $LASTEXITCODE
+          Write-Host "Conda activation exit code: $activationCode"
+          Write-Host "Current conda environment:"
+          Write-Host $env:CONDA_DEFAULT_ENV
+          Write-Host "Conda prefix:"
+          Write-Host $env:CONDA_PREFIX
           
-          echo "=== BUILD DIRECTORY CONTENTS BEFORE BUILD ==="
-          dir
+          Write-Host "=== BUILD DIRECTORY CONTENTS BEFORE BUILD ==="
+          Get-ChildItem
           
-          echo "=== CHECKING CMAKE AND BUILD TOOLS ==="
-          where cmake
+          Write-Host "=== CHECKING CMAKE AND BUILD TOOLS ==="
+          Get-Command cmake
           cmake --version
-          echo "CMake version exit code: %errorlevel%"
+          $cmakeVersionCode = $LASTEXITCODE
+          Write-Host "CMake version exit code: $cmakeVersionCode"
           
-          echo "=== RUNNING CMAKE BUILD ==="
-          echo "Command: cmake --build . --config Release --target rdkitcffi -j 2 --verbose"
-          cmake --build . --config Release --target rdkitcffi -j 2 --verbose
-          set BUILD_EXIT_CODE=%errorlevel%
-          echo "Build exit code: %BUILD_EXIT_CODE%"
+          Write-Host "=== RUNNING CMAKE BUILD ==="
+          Write-Host "Command: cmake --build . --config Release --target rdkitcffi -j 2 --verbose"
           
-          echo "=== BUILD DIRECTORY CONTENTS AFTER BUILD ==="
-          dir
+          Write-Host "=== TESTING BASIC COMMANDS FIRST ==="
+          Write-Host "Testing basic PowerShell output:"
+          Write-Host "This is a test output from PowerShell"
           
-          echo "=== CHECKING OUTPUT DIRECTORIES ==="
-          echo "Checking bin directory:"
-          if exist bin (
-            echo "bin directory exists:"
-            dir bin
-            if exist bin\Release (
-              echo "bin\Release directory exists:"
-              dir bin\Release
-            ) else (
-              echo "bin\Release directory does not exist"
-            )
-          ) else (
-            echo "bin directory does not exist"
-          )
+          Write-Host "Testing directory listing:"
+          Get-ChildItem . | Select-Object Name, LastWriteTime
           
-          echo "Checking lib directory:"
-          if exist lib (
-            echo "lib directory exists:"
-            dir lib
-            if exist lib\Release (
-              echo "lib\Release directory exists:"
-              dir lib\Release
-            ) else (
-              echo "lib\Release directory does not exist"
-            )
-          ) else (
-            echo "lib directory does not exist"
-          )
+          Write-Host "Testing cmake help (should produce output):"
+          cmake --help | Select-String "Usage"
+          
+          Write-Host "=== TESTING CMAKE BUILD WITH SIMPLER APPROACH ==="
+          Write-Host "First, let's try cmake without verbose to see if it produces any output:"
+          
+          # Capture both stdout and stderr
+          $output = cmake --build . --config Release --target rdkitcffi 2>&1
+          $simpleBuildCode = $LASTEXITCODE
+          Write-Host "Simple build exit code: $simpleBuildCode"
+          Write-Host "Build output:"
+          Write-Host $output
+          
+          Write-Host "Now trying with verbose flag:"
+          $verboseOutput = cmake --build . --config Release --target rdkitcffi -j 2 --verbose 2>&1
+          $buildCode = $LASTEXITCODE
+          Write-Host "Build exit code: $buildCode"
+          Write-Host "Verbose build output:"
+          Write-Host $verboseOutput
+          
+          Write-Host "=== BUILD DIRECTORY CONTENTS AFTER BUILD ==="
+          Get-ChildItem
+          
+          Write-Host "=== CHECKING OUTPUT DIRECTORIES ==="
+          Write-Host "Checking bin directory:"
+          if (Test-Path bin) {
+            Write-Host "bin directory exists:"
+            Get-ChildItem bin
+            if (Test-Path bin\Release) {
+              Write-Host "bin\Release directory exists:"
+              Get-ChildItem bin\Release
+            } else {
+              Write-Host "bin\Release directory does not exist"
+            }
+          } else {
+            Write-Host "bin directory does not exist"
+          }
+          
+          Write-Host "Checking lib directory:"
+          if (Test-Path lib) {
+            Write-Host "lib directory exists:"
+            Get-ChildItem lib
+            if (Test-Path lib\Release) {
+              Write-Host "lib\Release directory exists:"
+              Get-ChildItem lib\Release
+            } else {
+              Write-Host "lib\Release directory does not exist"
+            }
+          } else {
+            Write-Host "lib directory does not exist"
+          }
           
           # Check if build failed
-          if %BUILD_EXIT_CODE% neq 0 (
-            echo "=== BUILD FAILED ==="
-            echo "Build failed with exit code: %BUILD_EXIT_CODE%"
-            echo "Checking for error logs..."
-            if exist CMakeFiles\CMakeError.log (
-              echo "=== CMakeError.log ==="
-              type CMakeFiles\CMakeError.log
-            )
-            if exist CMakeFiles\CMakeOutput.log (
-              echo "=== Last 50 lines of CMakeOutput.log ==="
-              powershell -Command "Get-Content CMakeFiles\CMakeOutput.log | Select-Object -Last 50"
-            )
-            exit %BUILD_EXIT_CODE%
-          ) else (
-            echo "=== BUILD SUCCESSFUL ==="
-          )
+          if ($buildCode -ne 0) {
+            Write-Host "=== BUILD FAILED ==="
+            Write-Host "Build failed with exit code: $buildCode"
+            Write-Host "Checking for error logs..."
+            if (Test-Path CMakeFiles\CMakeError.log) {
+              Write-Host "=== CMakeError.log ==="
+              Get-Content CMakeFiles\CMakeError.log
+            }
+            if (Test-Path CMakeFiles\CMakeOutput.log) {
+              Write-Host "=== Last 50 lines of CMakeOutput.log ==="
+              Get-Content CMakeFiles\CMakeOutput.log | Select-Object -Last 50
+            }
+            exit $buildCode
+          } else {
+            Write-Host "=== BUILD SUCCESSFUL ==="
+          }
 
       - name: Create build artifacts
         shell: powershell
