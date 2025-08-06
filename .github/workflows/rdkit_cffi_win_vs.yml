@@ -141,7 +141,19 @@ jobs:
         run: |
           cd rdkit/build
           conda activate rdkit_build
-          cmake --build . --config Release --target rdkitcffi -j 2
+          echo "=== STARTING BUILD ==="
+          echo "Build directory contents before build:"
+          dir
+          echo "Running cmake build with verbose output..."
+          cmake --build . --config Release --target rdkitcffi -j 2 --verbose
+          
+          echo "=== BUILD COMPLETED ==="
+          echo "Build directory contents after build:"
+          dir
+          echo "Checking bin directory:"
+          if exist bin\Release dir bin\Release
+          echo "Checking lib directory:"
+          if exist lib\Release dir lib\Release
           
           # If build fails, show the error log
           if errorlevel 1 (
@@ -153,43 +165,44 @@ jobs:
           )
 
       - name: Create build artifacts
+        shell: powershell
         run: |
-          mkdir -p $env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64
-          echo '-----------------'
-          echo 'Looking for DLL files...'
+          New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64"
+          Write-Host '-----------------'
+          Write-Host 'Looking for DLL files...'
           
           # Look for the DLL file in the bin directory
-          if exist "rdkit\build\bin\Release\librdkitcffi.dll" (
-            echo 'Found librdkitcffi.dll in bin\Release directory'
-            dir rdkit\build\bin\Release\librdkitcffi.dll
-            cd rdkit\build\bin\Release
-            for /f "tokens=2 delims=-" %%i in ('git describe --tags --long HEAD') do set BUILD=%%i
-            copy librdkitcffi.dll $env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\librdkitcffi.dll.%BUILD%
-          ) else if exist "rdkit\build\bin\Release\rdkitcffi.dll" (
-            echo 'Found rdkitcffi.dll in bin\Release directory'
-            dir rdkit\build\bin\Release\rdkitcffi.dll
-            cd rdkit\build\bin\Release
-            for /f "tokens=2 delims=-" %%i in ('git describe --tags --long HEAD') do set BUILD=%%i
-            copy rdkitcffi.dll $env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\rdkitcffi.dll.%BUILD%
-          ) else if exist "rdkit\build\lib\Release\librdkitcffi.dll" (
-            echo 'Found librdkitcffi.dll in lib\Release directory'
-            dir rdkit\build\lib\Release\librdkitcffi.dll
-            cd rdkit\build\lib\Release
-            for /f "tokens=2 delims=-" %%i in ('git describe --tags --long HEAD') do set BUILD=%%i
-            copy librdkitcffi.dll $env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\librdkitcffi.dll.%BUILD%
-          ) else (
-            echo 'DLL file not found. Listing bin\Release directory:'
-            dir rdkit\build\bin\Release\ | findstr /i "rdkitcffi\|\.dll"
-            echo 'Also checking lib\Release directory:'
-            dir rdkit\build\lib\Release\ | findstr /i "rdkitcffi\|\.dll"
+          if (Test-Path "rdkit\build\bin\Release\librdkitcffi.dll") {
+            Write-Host 'Found librdkitcffi.dll in bin\Release directory'
+            Get-ChildItem rdkit\build\bin\Release\librdkitcffi.dll
+            Set-Location rdkit\build\bin\Release
+            $BUILD = (git describe --tags --long HEAD).Split('-')[1]
+            Copy-Item librdkitcffi.dll "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\librdkitcffi.dll.$BUILD"
+          } elseif (Test-Path "rdkit\build\bin\Release\rdkitcffi.dll") {
+            Write-Host 'Found rdkitcffi.dll in bin\Release directory'
+            Get-ChildItem rdkit\build\bin\Release\rdkitcffi.dll
+            Set-Location rdkit\build\bin\Release
+            $BUILD = (git describe --tags --long HEAD).Split('-')[1]
+            Copy-Item rdkitcffi.dll "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\rdkitcffi.dll.$BUILD"
+          } elseif (Test-Path "rdkit\build\lib\Release\librdkitcffi.dll") {
+            Write-Host 'Found librdkitcffi.dll in lib\Release directory'
+            Get-ChildItem rdkit\build\lib\Release\librdkitcffi.dll
+            Set-Location rdkit\build\lib\Release
+            $BUILD = (git describe --tags --long HEAD).Split('-')[1]
+            Copy-Item librdkitcffi.dll "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\librdkitcffi.dll.$BUILD"
+          } else {
+            Write-Host 'DLL file not found. Listing bin\Release directory:'
+            if (Test-Path "rdkit\build\bin\Release") { Get-ChildItem rdkit\build\bin\Release | Where-Object Name -match "rdkitcffi|\.dll" }
+            Write-Host 'Also checking lib\Release directory:'
+            if (Test-Path "rdkit\build\lib\Release") { Get-ChildItem rdkit\build\lib\Release | Where-Object Name -match "rdkitcffi|\.dll" }
             exit 1
-          )
+          }
           
-          echo 'Final artifact directory contents:'
-          dir $env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\
+          Write-Host 'Final artifact directory contents:'
+          Get-ChildItem "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\"
           
-          echo 'Checking file sizes:'
-          dir $env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\ /-c
+          Write-Host 'Checking file sizes:'
+          Get-ChildItem "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\" | Format-Table Name, Length
 
       - name: Create artifact
         run: |

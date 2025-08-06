@@ -84,9 +84,10 @@ jobs:
           echo "Checking default C++ standard:"
           g++ -dM -E -x c++ /dev/null | grep -i "cplusplus\|std"
           echo "Checking CMake C++ standard variables:"
-          cmake .. -G 'MSYS Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -L | grep -i "cxx.*standard"
+          cmake .. -G 'MSYS Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -L | grep -i "cxx.*standard" || true
           
           echo "=== RUNNING FULL CMAKE CONFIGURATION ==="
+          set -e  # Exit on error
           cmake .. \
             -G 'MSYS Makefiles' \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -131,6 +132,23 @@ jobs:
             -DCMAKE_CXX_STANDARD=14 \
             -DCMAKE_CXX_STANDARD_REQUIRED=ON \
             -DCMAKE_CXX_EXTENSIONS=OFF
+          
+          if [ $? -ne 0 ]; then
+            echo "=== CMAKE CONFIGURATION FAILED ==="
+            echo "Checking CMake error log..."
+            if [ -f CMakeFiles/CMakeError.log ]; then
+              echo "=== CMakeError.log ==="
+              cat CMakeFiles/CMakeError.log
+            fi
+            if [ -f CMakeFiles/CMakeOutput.log ]; then
+              echo "=== CMakeOutput.log ==="
+              tail -50 CMakeFiles/CMakeOutput.log
+            fi
+            echo "=== End of error logs ==="
+            exit 1
+          fi
+          
+          echo "=== CMAKE CONFIGURATION SUCCESSFUL ==="
 
       - name: Build
         shell: msys2 {0}
