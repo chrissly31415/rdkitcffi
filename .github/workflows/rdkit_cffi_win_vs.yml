@@ -139,34 +139,136 @@ jobs:
       - name: Build
         shell: cmd /C CALL {0}
         run: |
-          cd rdkit/build
-          conda activate rdkit_build
           echo "=== STARTING BUILD ==="
-          echo "Build directory contents before build:"
+          echo "Current directory:"
+          cd
+          echo "Changing to build directory..."
+          cd rdkit/build
+          echo "Current directory after cd:"
+          cd
+          
+          echo "=== CONDA ENVIRONMENT ACTIVATION ==="
+          echo "Available conda environments:"
+          conda info --envs
+          echo "Activating rdkit_build environment..."
+          conda activate rdkit_build
+          echo "Conda activation exit code: %errorlevel%"
+          echo "Current conda environment:"
+          echo %CONDA_DEFAULT_ENV%
+          echo "Conda prefix:"
+          echo %CONDA_PREFIX%
+          
+          echo "=== BUILD DIRECTORY CONTENTS BEFORE BUILD ==="
           dir
-          echo "Running cmake build with verbose output..."
+          
+          echo "=== CHECKING CMAKE AND BUILD TOOLS ==="
+          where cmake
+          cmake --version
+          echo "CMake version exit code: %errorlevel%"
+          
+          echo "=== RUNNING CMAKE BUILD ==="
+          echo "Command: cmake --build . --config Release --target rdkitcffi -j 2 --verbose"
           cmake --build . --config Release --target rdkitcffi -j 2 --verbose
+          set BUILD_EXIT_CODE=%errorlevel%
+          echo "Build exit code: %BUILD_EXIT_CODE%"
           
-          echo "=== BUILD COMPLETED ==="
-          echo "Build directory contents after build:"
+          echo "=== BUILD DIRECTORY CONTENTS AFTER BUILD ==="
           dir
-          echo "Checking bin directory:"
-          if exist bin\Release dir bin\Release
-          echo "Checking lib directory:"
-          if exist lib\Release dir lib\Release
           
-          # If build fails, show the error log
-          if errorlevel 1 (
-            echo Build failed. Showing last 100 lines of error log:
-            if exist CMakeFiles\CMakeError.log (
-              powershell -Command "Get-Content CMakeFiles\CMakeError.log | Select-Object -Last 100"
+          echo "=== CHECKING OUTPUT DIRECTORIES ==="
+          echo "Checking bin directory:"
+          if exist bin (
+            echo "bin directory exists:"
+            dir bin
+            if exist bin\Release (
+              echo "bin\Release directory exists:"
+              dir bin\Release
+            ) else (
+              echo "bin\Release directory does not exist"
             )
-            exit 1
+          ) else (
+            echo "bin directory does not exist"
+          )
+          
+          echo "Checking lib directory:"
+          if exist lib (
+            echo "lib directory exists:"
+            dir lib
+            if exist lib\Release (
+              echo "lib\Release directory exists:"
+              dir lib\Release
+            ) else (
+              echo "lib\Release directory does not exist"
+            )
+          ) else (
+            echo "lib directory does not exist"
+          )
+          
+          # Check if build failed
+          if %BUILD_EXIT_CODE% neq 0 (
+            echo "=== BUILD FAILED ==="
+            echo "Build failed with exit code: %BUILD_EXIT_CODE%"
+            echo "Checking for error logs..."
+            if exist CMakeFiles\CMakeError.log (
+              echo "=== CMakeError.log ==="
+              type CMakeFiles\CMakeError.log
+            )
+            if exist CMakeFiles\CMakeOutput.log (
+              echo "=== Last 50 lines of CMakeOutput.log ==="
+              powershell -Command "Get-Content CMakeFiles\CMakeOutput.log | Select-Object -Last 50"
+            )
+            exit %BUILD_EXIT_CODE%
+          ) else (
+            echo "=== BUILD SUCCESSFUL ==="
           )
 
       - name: Create build artifacts
         shell: powershell
         run: |
+          Write-Host "=== COMPREHENSIVE BUILD DIRECTORY ANALYSIS ==="
+          Write-Host "Current working directory:"
+          Get-Location
+          
+          Write-Host "=== CHECKING BUILD DIRECTORY STRUCTURE ==="
+          if (Test-Path "rdkit") {
+            Write-Host "rdkit directory exists"
+            if (Test-Path "rdkit\build") {
+              Write-Host "rdkit\build directory exists, contents:"
+              Get-ChildItem "rdkit\build" | Format-Table Name, LastWriteTime, Length
+              
+              Write-Host "=== CHECKING FOR ANY DLL FILES ==="
+              Write-Host "All DLL files in build directory:"
+              Get-ChildItem "rdkit\build" -Recurse -Filter "*.dll" | Format-Table FullName, LastWriteTime, Length
+              
+              Write-Host "=== CHECKING FOR ANY RDKITCFFI FILES ==="
+              Write-Host "All files containing 'rdkitcffi' or 'cffi':"
+              Get-ChildItem "rdkit\build" -Recurse | Where-Object Name -match "rdkitcffi|cffi" | Format-Table FullName, LastWriteTime, Length
+              
+              Write-Host "=== CHECKING SPECIFIC DIRECTORIES ==="
+              @("bin", "lib", "bin\Release", "lib\Release", "bin\Debug", "lib\Debug") | ForEach-Object {
+                $dir = "rdkit\build\$_"
+                if (Test-Path $dir) {
+                  Write-Host "$dir directory exists, contents:"
+                  Get-ChildItem $dir | Format-Table Name, LastWriteTime, Length
+                } else {
+                  Write-Host "$dir directory does not exist"
+                }
+              }
+              
+              Write-Host "=== CHECKING CMAKE FILES ==="
+              if (Test-Path "rdkit\build\CMakeCache.txt") {
+                Write-Host "CMakeCache.txt exists, checking build type and target:"
+                Get-Content "rdkit\build\CMakeCache.txt" | Select-String "CMAKE_BUILD_TYPE|CFFI|TARGET"
+              }
+              
+            } else {
+              Write-Host "rdkit\build directory does not exist!"
+            }
+          } else {
+            Write-Host "rdkit directory does not exist!"
+          }
+          
+          Write-Host "=== CREATING ARTIFACT DIRECTORY ==="
           New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64"
           Write-Host '-----------------'
           Write-Host 'Looking for DLL files...'
@@ -191,11 +293,28 @@ jobs:
             $BUILD = (git describe --tags --long HEAD).Split('-')[1]
             Copy-Item librdkitcffi.dll "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\librdkitcffi.dll.$BUILD"
           } else {
-            Write-Host 'DLL file not found. Listing bin\Release directory:'
-            if (Test-Path "rdkit\build\bin\Release") { Get-ChildItem rdkit\build\bin\Release | Where-Object Name -match "rdkitcffi|\.dll" }
-            Write-Host 'Also checking lib\Release directory:'
-            if (Test-Path "rdkit\build\lib\Release") { Get-ChildItem rdkit\build\lib\Release | Where-Object Name -match "rdkitcffi|\.dll" }
-            exit 1
+            Write-Host 'DLL file not found in expected locations.'
+            Write-Host 'Checking if any DLL was built anywhere:'
+            $allDlls = Get-ChildItem "rdkit\build" -Recurse -Filter "*.dll" -ErrorAction SilentlyContinue
+            if ($allDlls) {
+              Write-Host "Found DLL files in build directory:"
+              $allDlls | Format-Table FullName, LastWriteTime, Length
+              
+              # Look for any CFFI-related DLL
+              $cffiDll = $allDlls | Where-Object Name -match "cffi"
+              if ($cffiDll) {
+                Write-Host "Found CFFI-related DLL, copying it:"
+                $cffiDll | Format-Table FullName, LastWriteTime, Length
+                $BUILD = (git describe --tags --long HEAD).Split('-')[1]
+                Copy-Item $cffiDll[0].FullName "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\$($cffiDll[0].Name).$BUILD"
+              } else {
+                Write-Host "No CFFI-related DLL found among built DLLs"
+                exit 1
+              }
+            } else {
+              Write-Host "No DLL files found anywhere in build directory"
+              exit 1
+            }
           }
           
           Write-Host 'Final artifact directory contents:'
