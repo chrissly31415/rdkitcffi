@@ -102,6 +102,7 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=/mingw64 \
             -DCMAKE_INCLUDE_PATH='/mingw64/include;/mingw64/x86_64-w64-mingw32/include' \
             -DCMAKE_LIBRARY_PATH='/mingw64/lib;/mingw64/x86_64-w64-mingw32/lib' \
+            -DCMAKE_CXX_FLAGS='-std=c++14 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign' \
             -DCMAKE_EXE_LINKER_FLAGS='-Wl,--allow-shlib-undefined' \
             -DCMAKE_SHARED_LINKER_FLAGS='-Wl,--allow-shlib-undefined' 
            

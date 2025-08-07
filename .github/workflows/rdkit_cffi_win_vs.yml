@@ -142,16 +142,7 @@ jobs:
         shell: powershell
         run: |
           Write-Host "=== STARTING BUILD ==="
-          Write-Host "Current directory:"
-          Get-Location
-          Write-Host "Changing to build directory..."
           Set-Location rdkit/build
-          Write-Host "Current directory after cd:"
-          Get-Location
-          
-          Write-Host "=== CONDA ENVIRONMENT ACTIVATION ==="
-          Write-Host "Available conda environments:"
-          conda info --envs
           Write-Host "Activating rdkit_build environment..."
           conda activate rdkit_build
           $activationCode = $LASTEXITCODE
@@ -161,140 +152,27 @@ jobs:
           Write-Host "Conda prefix:"
           Write-Host $env:CONDA_PREFIX
           
-          Write-Host "=== BUILD DIRECTORY CONTENTS BEFORE BUILD ==="
-          Get-ChildItem
-          
-          Write-Host "=== CHECKING CMAKE AND BUILD TOOLS ==="
-          Get-Command cmake
-          cmake --version
-          $cmakeVersionCode = $LASTEXITCODE
-          Write-Host "CMake version exit code: $cmakeVersionCode"
-          
           Write-Host "=== RUNNING CMAKE BUILD ==="
-          Write-Host "Command: cmake --build . --config Release --target install --verbose"
-          
-          Write-Host "=== TESTING BASIC COMMANDS FIRST ==="
-          Write-Host "Testing basic PowerShell output:"
-          Write-Host "This is a test output from PowerShell"
-          
-          Write-Host "Testing directory listing:"
-          Get-ChildItem . | Select-Object Name, LastWriteTime
-          
-          Write-Host "Testing cmake help (should produce output):"
-          cmake --help | Select-String "Usage"
-          
-          Write-Host "=== TESTING CMAKE BUILD WITH SIMPLER APPROACH ==="
-          Write-Host "First, let's try cmake without verbose to see if it produces any output:"
-          
+
           # Capture both stdout and stderr
-          $output = cmake --build . --config Release --target rdkitcffi 2>&1
-          $simpleBuildCode = $LASTEXITCODE
-          Write-Host "Simple build exit code: $simpleBuildCode"
-          Write-Host "Build output:"
-          Write-Host $output
-          
-          Write-Host "Now trying with verbose flag:"
-          $verboseOutput = cmake --build . --config Release --target rdkitcffi -j 2 --verbose 2>&1
+          cmake --build . --config Release --target rdkitcffi --verbose 2>&1
           $buildCode = $LASTEXITCODE
+          
           Write-Host "Build exit code: $buildCode"
-          Write-Host "Verbose build output:"
-          Write-Host $verboseOutput
-          
-          Write-Host "=== BUILD DIRECTORY CONTENTS AFTER BUILD ==="
-          Get-ChildItem
-          
-          Write-Host "=== CHECKING OUTPUT DIRECTORIES ==="
-          Write-Host "Checking bin directory:"
-          if (Test-Path bin) {
-            Write-Host "bin directory exists:"
-            Get-ChildItem bin
-            if (Test-Path bin\Release) {
-              Write-Host "bin\Release directory exists:"
-              Get-ChildItem bin\Release
-            } else {
-              Write-Host "bin\Release directory does not exist"
-            }
-          } else {
-            Write-Host "bin directory does not exist"
-          }
-          
-          Write-Host "Checking lib directory:"
-          if (Test-Path lib) {
-            Write-Host "lib directory exists:"
-            Get-ChildItem lib
-            if (Test-Path lib\Release) {
-              Write-Host "lib\Release directory exists:"
-              Get-ChildItem lib\Release
-            } else {
-              Write-Host "lib\Release directory does not exist"
-            }
-          } else {
-            Write-Host "lib directory does not exist"
-          }
-          
+  
           # Check if build failed
           if ($buildCode -ne 0) {
             Write-Host "=== BUILD FAILED ==="
             Write-Host "Build failed with exit code: $buildCode"
-            Write-Host "Checking for error logs..."
-            if (Test-Path CMakeFiles\CMakeError.log) {
-              Write-Host "=== CMakeError.log ==="
-              Get-Content CMakeFiles\CMakeError.log
-            }
-            if (Test-Path CMakeFiles\CMakeOutput.log) {
-              Write-Host "=== Last 50 lines of CMakeOutput.log ==="
-              Get-Content CMakeFiles\CMakeOutput.log | Select-Object -Last 50
-            }
             exit $buildCode
           } else {
             Write-Host "=== BUILD SUCCESSFUL ==="
           }
-
+          
       - name: Create build artifacts
         shell: powershell
         run: |
-          Write-Host "=== COMPREHENSIVE BUILD DIRECTORY ANALYSIS ==="
-          Write-Host "Current working directory:"
-          Get-Location
           
-          Write-Host "=== CHECKING BUILD DIRECTORY STRUCTURE ==="
-          if (Test-Path "rdkit") {
-            Write-Host "rdkit directory exists"
-            if (Test-Path "rdkit\build") {
-              Write-Host "rdkit\build directory exists, contents:"
-              Get-ChildItem "rdkit\build" | Format-Table Name, LastWriteTime, Length
-              
-              Write-Host "=== CHECKING FOR ANY DLL FILES ==="
-              Write-Host "All DLL files in build directory:"
-              Get-ChildItem "rdkit\build" -Recurse -Filter "*.dll" | Format-Table FullName, LastWriteTime, Length
-              
-              Write-Host "=== CHECKING FOR ANY RDKITCFFI FILES ==="
-              Write-Host "All files containing 'rdkitcffi' or 'cffi':"
-              Get-ChildItem "rdkit\build" -Recurse | Where-Object Name -match "rdkitcffi|cffi" | Format-Table FullName, LastWriteTime, Length
-              
-              Write-Host "=== CHECKING SPECIFIC DIRECTORIES ==="
-              @("bin", "lib", "bin\Release", "lib\Release", "bin\Debug", "lib\Debug") | ForEach-Object {
-                $dir = "rdkit\build\$_"
-                if (Test-Path $dir) {
-                  Write-Host "$dir directory exists, contents:"
-                  Get-ChildItem $dir | Format-Table Name, LastWriteTime, Length
-                } else {
-                  Write-Host "$dir directory does not exist"
-                }
-              }
-              
-              Write-Host "=== CHECKING CMAKE FILES ==="
-              if (Test-Path "rdkit\build\CMakeCache.txt") {
-                Write-Host "CMakeCache.txt exists, checking build type and target:"
-                Get-Content "rdkit\build\CMakeCache.txt" | Select-String "CMAKE_BUILD_TYPE|CFFI|TARGET"
-              }
-              
-            } else {
-              Write-Host "rdkit\build directory does not exist!"
-            }
-          } else {
-            Write-Host "rdkit directory does not exist!"
-          }
           
           Write-Host "=== CREATING ARTIFACT DIRECTORY ==="
           New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64"
@@ -370,20 +248,7 @@ jobs:
             exit 1
           }
 
-      - name: Verify directory exists
-        run: |
-          Write-Host "Current directory:"
-          Get-Location
-          Write-Host "Files in current directory:"
-          Get-ChildItem
-          Write-Host "Checking for rdkitcffi_windows directory:"
-          if (Test-Path "rdkitcffi_windows") {
-            Write-Host "✅ Directory found!"
-            Get-ChildItem "rdkitcffi_windows" -Recurse
-          } else {
-            Write-Host "❌ Directory not found!"
-            exit 1
-          }
+
 
       - name: Upload artifact to GitHub Actions
         uses: actions/upload-artifact@v4
@@ -392,11 +257,17 @@ jobs:
           path: rdkitcffi_windows
           retention-days: 30
 
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rdkitcffi_windows_vs
+          path: release_files
+
       - name: Create Release
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         with:
-          files: rdkitcffi_windows
+          files: ${{ github.workspace }}/rdkitcffi_windows_vs.zip
           tag_name: rdkit-windows-vs-latest
           name: Latest RDKit CFFI Windows VS Build
           body: Automated RDKit CFFI Windows DLL build using Visual Studio
