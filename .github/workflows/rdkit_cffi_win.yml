@@ -82,7 +82,6 @@ jobs:
             -G 'MSYS Makefiles' \
             -DCMAKE_BUILD_TYPE=Release \
             -DRDK_BUILD_CFFI_LIB=ON \
-            -DRDK_CFFI_STATIC=ON \
             -DRDK_INSTALL_INTREE=OFF \
             -DRDK_BUILD_CPP_TESTS=OFF \
             -DRDK_BUILD_COORDGEN_SUPPORT=ON \
