@@ -173,7 +173,6 @@ jobs:
         shell: powershell
         run: |
           
-          
           Write-Host "=== CREATING ARTIFACT DIRECTORY ==="
           New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64"
           Write-Host '-----------------'
@@ -186,41 +185,9 @@ jobs:
             Set-Location rdkit\build\bin\Release
             $BUILD = (git describe --tags --long HEAD).Split('-')[1]
             Copy-Item librdkitcffi.dll "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\librdkitcffi.dll.$BUILD"
-          } elseif (Test-Path "rdkit\build\bin\Release\rdkitcffi.dll") {
-            Write-Host 'Found rdkitcffi.dll in bin\Release directory'
-            Get-ChildItem rdkit\build\bin\Release\rdkitcffi.dll
-            Set-Location rdkit\build\bin\Release
-            $BUILD = (git describe --tags --long HEAD).Split('-')[1]
-            Copy-Item rdkitcffi.dll "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\rdkitcffi.dll.$BUILD"
-          } elseif (Test-Path "rdkit\build\lib\Release\librdkitcffi.dll") {
-            Write-Host 'Found librdkitcffi.dll in lib\Release directory'
-            Get-ChildItem rdkit\build\lib\Release\librdkitcffi.dll
-            Set-Location rdkit\build\lib\Release
-            $BUILD = (git describe --tags --long HEAD).Split('-')[1]
-            Copy-Item librdkitcffi.dll "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\librdkitcffi.dll.$BUILD"
-          } else {
-            Write-Host 'DLL file not found in expected locations.'
-            Write-Host 'Checking if any DLL was built anywhere:'
-            $allDlls = Get-ChildItem "rdkit\build" -Recurse -Filter "*.dll" -ErrorAction SilentlyContinue
-            if ($allDlls) {
-              Write-Host "Found DLL files in build directory:"
-              $allDlls | Format-Table FullName, LastWriteTime, Length
-              
-              # Look for any CFFI-related DLL
-              $cffiDll = $allDlls | Where-Object Name -match "cffi"
-              if ($cffiDll) {
-                Write-Host "Found CFFI-related DLL, copying it:"
-                $cffiDll | Format-Table FullName, LastWriteTime, Length
-                $BUILD = (git describe --tags --long HEAD).Split('-')[1]
-                Copy-Item $cffiDll[0].FullName "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\$($cffiDll[0].Name).$BUILD"
-              } else {
-                Write-Host "No CFFI-related DLL found among built DLLs"
-                exit 1
-              }
             } else {
-              Write-Host "No DLL files found anywhere in build directory"
+              Write-Host "No DLL files found in build directory"
               exit 1
-            }
           }
           
           Write-Host 'Final artifact directory contents:'
@@ -228,26 +195,6 @@ jobs:
           
           Write-Host 'Checking file sizes:'
           Get-ChildItem "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\" | Format-Table Name, Length
-
-      - name: Create artifact
-        run: |
-          cd $env:GITHUB_WORKSPACE
-          # Check if the directory exists and has files
-          if (Test-Path "rdkitcffi_windows") {
-            Write-Host "Found rdkitcffi_windows directory, contents:"
-            Get-ChildItem -Recurse "rdkitcffi_windows"
-            
-            # Show current directory and file for debugging
-            Write-Host "Current directory:"
-            Get-Location
-            Write-Host "Directory details:"
-            Get-ChildItem "rdkitcffi_windows" | Format-List
-          } else {
-            Write-Host "ERROR: rdkitcffi_windows directory not found!"
-            Get-ChildItem
-            exit 1
-          }
-
 
 
       - name: Upload artifact to GitHub Actions
@@ -267,7 +214,7 @@ jobs:
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         with:
-          files: ${{ github.workspace }}/rdkitcffi_windows_vs.zip
+          files: release_files
           tag_name: rdkit-windows-vs-latest
           name: Latest RDKit CFFI Windows VS Build
           body: Automated RDKit CFFI Windows DLL build using Visual Studio
