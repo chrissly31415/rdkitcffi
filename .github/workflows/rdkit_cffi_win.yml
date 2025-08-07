@@ -1,4 +1,4 @@
-name: RDKit CFFI Windows 2025.03
+name: RDKit CFFI Windows 2024.09
 
 on:
   workflow_dispatch:
@@ -58,7 +58,7 @@ jobs:
       - name: Clone main RDKit repo
         shell: msys2 {0}
         run: |
-          git clone https://github.com/rdkit/rdkit.git --branch Release_2025_03 --single-branch rdkit --depth=1
+          git clone https://github.com/rdkit/rdkit.git --branch Release_2024_09 --single-branch rdkit --depth=1
 
       - name: Cache CMake and build artifacts
         uses: actions/cache@v4
@@ -78,57 +78,33 @@ jobs:
         run: |
           cd rdkit && mkdir -p build && cd build
           
-          echo "=== DEBUGGING C++ STANDARD FLAGS ==="
-          echo "Checking compiler version and defaults:"
-          g++ --version
-          echo "Checking default C++ standard:"
-          g++ -dM -E -x c++ /dev/null | grep -i "cplusplus\|std"
-          echo "Checking CMake C++ standard variables:"
-          cmake .. -G 'MSYS Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -L | grep -i "cxx.*standard" || true
-          
           echo "=== RUNNING FULL CMAKE CONFIGURATION ==="
           set -e  # Exit on error
           cmake .. \
             -G 'MSYS Makefiles' \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_BUILD_TYPE=Release \
             -DRDK_BUILD_CFFI_LIB=ON \
-            -DRDK_BUILD_MINIMAL_LIB=OFF \
             -DRDK_CFFI_STATIC=OFF \
             -DRDK_INSTALL_INTREE=OFF \
             -DRDK_BUILD_CPP_TESTS=OFF \
             -DRDK_BUILD_COORDGEN_SUPPORT=ON \
             -DRDK_BUILD_MAEPARSER_SUPPORT=OFF \
             -DRDK_OPTIMIZE_POPCNT=ON \
-            -DRDK_BUILD_TEST_GZIP=OFF \
+            -DWITH_ZLIB=OFF \
+            -DWITH_BZip2=OFF \
+            -DWITH_PNG=OFF \
             -DRDK_BUILD_INCHI_SUPPORT=ON \
-            -DRDK_BUILD_CAIRO_SUPPORT=ON \
-            -DRDK_BUILD_THREADSAFE_SSS=ON \
-            -DRDK_BUILD_SWIG_WRAPPERS=OFF \
-            -DRDK_SWIG_STATIC=OFF \
-            -DRDK_TEST_MULTITHREADED=ON \
             -DRDK_BUILD_PYTHON_WRAPPERS=OFF \
-            -DRDK_BUILD_PGSQL=OFF \
-            -DRDK_PGSQL_STATIC=OFF \
             -DRDK_USE_BOOST_SERIALIZATION=ON \
             -DRDK_USE_BOOST_IOSTREAMS=ON \
-            -DCAIRO_INCLUDE_DIR=/mingw64/include \
-            -DCAIRO_LIBRARIES=/mingw64/lib/libcairo.dll.a \
             -DFREETYPE_INCLUDE_DIRS=/mingw64/include/freetype2 \
             -DFREETYPE_LIBRARY=/mingw64/lib/libfreetype.dll.a \
-            -DZLIB_INCLUDE_DIR=/mingw64/include \
-            -DZLIB_LIBRARY=/mingw64/lib/libz.dll.a \
-            -DBZIP2_INCLUDE_DIR=/mingw64/include \
-            -DBZIP2_LIBRARIES=/mingw64/lib/libbz2.dll.a \
-            -DLIBLZMA_INCLUDE_DIR=/mingw64/include \
-            -DLIBLZMA_LIBRARY=/mingw64/lib/liblzma.dll.a \
             -DCMAKE_INSTALL_PREFIX=/mingw64 \
             -DCMAKE_INCLUDE_PATH='/mingw64/include;/mingw64/x86_64-w64-mingw32/include' \
             -DCMAKE_LIBRARY_PATH='/mingw64/lib;/mingw64/x86_64-w64-mingw32/lib' \
             -DCMAKE_EXE_LINKER_FLAGS='-Wl,--allow-shlib-undefined' \
-            -DCMAKE_SHARED_LINKER_FLAGS='-Wl,--allow-shlib-undefined' \
-            -DCMAKE_C_FLAGS='-std=c11 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign' \
-            -DCMAKE_CXX_FLAGS='-std=c++14 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign' \
-            -DCMAKE_CXX_STANDARD=14 
+            -DCMAKE_SHARED_LINKER_FLAGS='-Wl,--allow-shlib-undefined' 
+           
           
           if [ $? -ne 0 ]; then
             echo "=== CMAKE CONFIGURATION FAILED ==="

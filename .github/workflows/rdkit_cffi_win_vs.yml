@@ -115,15 +115,10 @@ jobs:
           
           cmake .. `
             -G "Visual Studio 17 2022" `
-            -A x64 `
             -DCMAKE_BUILD_TYPE=Release `
-            -DRDK_BUILD_CFFI_LIB=ON `
-            -DRDK_BUILD_MINIMAL_LIB=ON `
-            -DRDK_CFFI_STATIC=ON `
             -DRDK_INSTALL_INTREE=ON `
             -DRDK_INSTALL_STATIC_LIBS=OFF `
-            -DRDK_INSTALL_DLLS_MSVC=ON `
-            -DRDK_BUILD_CPP_TESTS=OFF `
+            -DRDK_BUILD_CPP_TESTS=ON `
             -DRDK_BUILD_PYTHON_WRAPPERS=OFF `
             -DRDK_BUILD_COORDGEN_SUPPORT=ON `
             -DRDK_BUILD_MAEPARSER_SUPPORT=ON `
@@ -137,22 +132,11 @@ jobs:
             -DRDK_BUILD_CAIRO_SUPPORT=ON `
             -DRDK_BUILD_THREADSAFE_SSS=ON `
             -DRDK_BUILD_SWIG_WRAPPERS=OFF `
+            -DRDK_BUILD_CFFI_LIB=ON `
             -DRDK_SWIG_STATIC=OFF `
             -DRDK_TEST_MULTITHREADED=ON `
-            -DRDK_USE_BOOST_SERIALIZATION=ON `
-            -DRDK_USE_BOOST_IOSTREAMS=ON `
             -DCMAKE_INCLUDE_PATH="$env:CONDA_PREFIX/Library/include" `
             -DCMAKE_LIBRARY_PATH="$env:CONDA_PREFIX/Library/lib" `
-            -DCMAKE_HAVE_LIBC_PTHREAD=OFF `
-            -DTHREADS_PREFER_PTHREAD_FLAG=OFF `
-            -DCMAKE_THREAD_LIBS_INIT="" `
-            -DCMAKE_USE_PTHREADS_INIT=OFF `
-            -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON `
-            -DCMAKE_CXX_FLAGS="/EHsc /MP" `
-            -DCMAKE_C_FLAGS="/MP" `
-            -DCMAKE_FIND_LIBRARY_SUFFIXES=".lib" `
-            -DCMAKE_FIND_LIBRARY_PREFIXES="" `
-            -DCMAKE_SYSTEM_NAME=Windows
 
       - name: Build
         shell: powershell
@@ -187,7 +171,7 @@ jobs:
           Write-Host "CMake version exit code: $cmakeVersionCode"
           
           Write-Host "=== RUNNING CMAKE BUILD ==="
-          Write-Host "Command: cmake --build . --config Release --target rdkitcffi -j 2 --verbose"
+          Write-Host "Command: cmake --build . --config Release --target install --verbose"
           
           Write-Host "=== TESTING BASIC COMMANDS FIRST ==="
           Write-Host "Testing basic PowerShell output:"
