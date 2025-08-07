@@ -142,7 +142,17 @@ jobs:
             -DRDK_USE_BOOST_SERIALIZATION=ON `
             -DRDK_USE_BOOST_IOSTREAMS=ON `
             -DCMAKE_INCLUDE_PATH="$env:CONDA_PREFIX/Library/include" `
-            -DCMAKE_LIBRARY_PATH="$env:CONDA_PREFIX/Library/lib"
+            -DCMAKE_LIBRARY_PATH="$env:CONDA_PREFIX/Library/lib" `
+            -DCMAKE_HAVE_LIBC_PTHREAD=OFF `
+            -DTHREADS_PREFER_PTHREAD_FLAG=OFF `
+            -DCMAKE_THREAD_LIBS_INIT="" `
+            -DCMAKE_USE_PTHREADS_INIT=OFF `
+            -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON `
+            -DCMAKE_CXX_FLAGS="/EHsc /MP" `
+            -DCMAKE_C_FLAGS="/MP" `
+            -DCMAKE_FIND_LIBRARY_SUFFIXES=".lib" `
+            -DCMAKE_FIND_LIBRARY_PREFIXES="" `
+            -DCMAKE_SYSTEM_NAME=Windows
 
       - name: Build
         shell: powershell
