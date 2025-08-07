@@ -172,6 +172,52 @@ jobs:
       - name: Create build artifacts
         shell: powershell
         run: |
+          Write-Host "=== COMPREHENSIVE BUILD DIRECTORY ANALYSIS ==="
+          Write-Host "Current working directory:"
+          Get-Location
+          
+          Write-Host "=== CHECKING BUILD DIRECTORY STRUCTURE ==="
+          if (Test-Path "rdkit") {
+            Write-Host "rdkit directory exists"
+            if (Test-Path "rdkit\build") {
+              Write-Host "rdkit\build directory exists, contents:"
+              Get-ChildItem "rdkit\build" | Format-Table Name, LastWriteTime, Length
+              
+              Write-Host "=== CHECKING FOR ALL DLL FILES ==="
+              Write-Host "All DLL files in build directory:"
+              $allDlls = Get-ChildItem "rdkit\build" -Recurse -Filter "*.dll" -ErrorAction SilentlyContinue
+              if ($allDlls) {
+                Write-Host "Found DLL files in build directory:"
+                $allDlls | Format-Table FullName, LastWriteTime, Length
+                
+                Write-Host "=== CHECKING FOR CFFI-RELATED DLLS ==="
+                $cffiDlls = $allDlls | Where-Object Name -match "cffi|rdkit"
+                if ($cffiDlls) {
+                  Write-Host "Found CFFI/RDKit-related DLLs:"
+                  $cffiDlls | Format-Table FullName, LastWriteTime, Length
+                } else {
+                  Write-Host "No CFFI/RDKit-related DLLs found"
+                }
+              } else {
+                Write-Host "No DLL files found anywhere in build directory"
+              }
+              
+              Write-Host "=== CHECKING SPECIFIC DIRECTORIES ==="
+              @("bin", "lib", "bin\Release", "lib\Release", "bin\Debug", "lib\Debug") | ForEach-Object {
+                $dir = "rdkit\build\$_"
+                if (Test-Path $dir) {
+                  Write-Host "$dir directory exists, contents:"
+                  Get-ChildItem $dir | Format-Table Name, LastWriteTime, Length
+                } else {
+                  Write-Host "$dir directory does not exist"
+                }
+              }
+            } else {
+              Write-Host "rdkit\build directory does not exist!"
+            }
+          } else {
+            Write-Host "rdkit directory does not exist!"
+          }
           
           Write-Host "=== CREATING ARTIFACT DIRECTORY ==="
           New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64"
@@ -185,9 +231,41 @@ jobs:
             Set-Location rdkit\build\bin\Release
             $BUILD = (git describe --tags --long HEAD).Split('-')[1]
             Copy-Item librdkitcffi.dll "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\librdkitcffi.dll.$BUILD"
+          } elseif (Test-Path "rdkit\build\bin\Release\rdkitcffi.dll") {
+            Write-Host 'Found rdkitcffi.dll in bin\Release directory'
+            Get-ChildItem rdkit\build\bin\Release\rdkitcffi.dll
+            Set-Location rdkit\build\bin\Release
+            $BUILD = (git describe --tags --long HEAD).Split('-')[1]
+            Copy-Item rdkitcffi.dll "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\rdkitcffi.dll.$BUILD"
+          } elseif (Test-Path "rdkit\build\lib\Release\librdkitcffi.dll") {
+            Write-Host 'Found librdkitcffi.dll in lib\Release directory'
+            Get-ChildItem rdkit\build\lib\Release\librdkitcffi.dll
+            Set-Location rdkit\build\lib\Release
+            $BUILD = (git describe --tags --long HEAD).Split('-')[1]
+            Copy-Item librdkitcffi.dll "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\librdkitcffi.dll.$BUILD"
+          } else {
+            Write-Host 'DLL file not found in expected locations.'
+            Write-Host 'Checking if any DLL was built anywhere:'
+            $allDlls = Get-ChildItem "rdkit\build" -Recurse -Filter "*.dll" -ErrorAction SilentlyContinue
+            if ($allDlls) {
+              Write-Host "Found DLL files in build directory:"
+              $allDlls | Format-Table FullName, LastWriteTime, Length
+              
+              # Look for any CFFI-related DLL
+              $cffiDll = $allDlls | Where-Object Name -match "cffi"
+              if ($cffiDll) {
+                Write-Host "Found CFFI-related DLL, copying it:"
+                $cffiDll | Format-Table FullName, LastWriteTime, Length
+                $BUILD = (git describe --tags --long HEAD).Split('-')[1]
+                Copy-Item $cffiDll[0].FullName "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\$($cffiDll[0].Name).$BUILD"
+              } else {
+                Write-Host "No CFFI-related DLL found among built DLLs"
+                exit 1
+              }
             } else {
-              Write-Host "No DLL files found in build directory"
+              Write-Host "No DLL files found anywhere in build directory"
               exit 1
+            }
           }
           
           Write-Host 'Final artifact directory contents:'
