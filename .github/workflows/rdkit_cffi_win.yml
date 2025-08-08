@@ -82,6 +82,7 @@ jobs:
             -G 'MSYS Makefiles' \
             -DCMAKE_BUILD_TYPE=Release \
             -DRDK_BUILD_CFFI_LIB=ON \
+            -DRDK_CFFI_STATIC=ON \
             -DRDK_INSTALL_INTREE=OFF \
             -DRDK_BUILD_CPP_TESTS=OFF \
             -DRDK_BUILD_COORDGEN_SUPPORT=ON \
@@ -103,6 +104,8 @@ jobs:
             -DCMAKE_C_FLAGS='-std=c99 -Wno-error=implicit-function-declaration -Wno-error=old-style-definition -Wno-error=incompatible-pointer-types -Wno-error=pointer-sign' \
             -DCMAKE_C_STANDARD=99 \
             -DCMAKE_C_STANDARD_REQUIRED=ON \
+            -DCMAKE_CXX_STANDARD=14 \
+            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
             -DCMAKE_EXE_LINKER_FLAGS='-Wl,--allow-shlib-undefined' \
             -DCMAKE_SHARED_LINKER_FLAGS='-Wl,--allow-shlib-undefined' 
            
@@ -130,7 +133,7 @@ jobs:
           cd rdkit/build
           # Build all required RDKit libraries first, then the CFFI library
           echo "Building RDKit libraries..."
-          cmake --build . --config Release --target rdkitcffi --verbose -j 2
+          cmake --build . --config Release --verbose -j 2
           
           # If build fails, show the error log
           if [ $? -ne 0 ]; then
