@@ -131,7 +131,7 @@ jobs:
           cd rdkit/build
           # Build all required RDKit libraries first, then the CFFI library
           echo "Building RDKit libraries..."
-          cmake --build . --config Release --verbose -j 2 --target rdkitcffi rdkit
+          cmake --build . --config Release --verbose -j 2 --target rdkitcffi
           
           # If build fails, show the error log
           if [ $? -ne 0 ]; then

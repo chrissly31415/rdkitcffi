@@ -275,19 +275,50 @@ jobs:
           Write-Host 'Checking file sizes:'
           Get-ChildItem "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\" | Format-Table Name, Length
 
+      - name: Create artifact
+        shell: powershell
+        run: |
+          Write-Host "=== CREATING ZIP ARTIFACT ==="
+          Set-Location $env:GITHUB_WORKSPACE
+          Write-Host "Current directory:"
+          Get-Location
+          Write-Host "Creating zip file..."
+          Compress-Archive -Path "rdkitcffi_windows" -DestinationPath "rdkitcffi_windows_vs.zip" -Force
+          Write-Host "Zip file created:"
+          Get-ChildItem "rdkitcffi_windows_vs.zip" | Format-Table Name, Length
+          Write-Host "Zip file contents:"
+          Expand-Archive -Path "rdkitcffi_windows_vs.zip" -DestinationPath "test_extract" -Force
+          Get-ChildItem "test_extract" -Recurse | Format-Table FullName, Length
 
-      - name: Upload artifact to GitHub Actions
-        uses: actions/upload-artifact@v4
-        with:
-          name: rdkitcffi_windows_vs
-          path: rdkitcffi_windows
-          retention-days: 30
+      - name: Verify zip file exists
+        shell: powershell
+        run: |
+          Write-Host "=== VERIFYING ZIP FILE FOR RELEASE ==="
+          Write-Host "Current directory:"
+          Get-Location
+          Write-Host "Files in current directory:"
+          Get-ChildItem | Where-Object Name -match "zip" | Format-Table Name, Length, LastWriteTime
+          Write-Host "Checking for rdkitcffi_windows_vs.zip:"
+          if (Test-Path "rdkitcffi_windows_vs.zip") {
+            Write-Host "✅ Zip file found!"
+            $zipInfo = Get-ChildItem "rdkitcffi_windows_vs.zip"
+            Write-Host "Zip file details:"
+            Write-Host "  Name: $($zipInfo.Name)"
+            Write-Host "  Size: $($zipInfo.Length) bytes"
+            Write-Host "  Created: $($zipInfo.CreationTime)"
+            Write-Host "  Modified: $($zipInfo.LastWriteTime)"
+          } else {
+            Write-Host "❌ Zip file not found!"
+            Write-Host "Available files:"
+            Get-ChildItem | Format-Table Name, Length
+            exit 1
+          }
 
       - name: Create Release
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         with:
-          files: rdkitcffi_windows
+          files: rdkitcffi_windows_vs.zip
           tag_name: rdkit-windows-vs-latest
           name: Latest RDKit CFFI Windows VS Build
           body: Automated RDKit CFFI Windows DLL build using Visual Studio
