@@ -203,6 +203,25 @@ jobs:
                 Write-Host "No DLL files found anywhere in build directory"
               }
               
+              Write-Host "=== CHECKING FOR ALL LIB FILES ==="
+              Write-Host "All LIB files in build directory:"
+              $allLibs = Get-ChildItem "rdkit\build" -Recurse -Filter "*.lib" -ErrorAction SilentlyContinue
+              if ($allLibs) {
+                Write-Host "Found LIB files in build directory:"
+                $allLibs | Format-Table FullName, LastWriteTime, Length
+                
+                Write-Host "=== CHECKING FOR CFFI-RELATED LIBS ==="
+                $cffiLibs = $allLibs | Where-Object Name -match "cffi|rdkit"
+                if ($cffiLibs) {
+                  Write-Host "Found CFFI/RDKit-related LIBs:"
+                  $cffiLibs | Format-Table FullName, LastWriteTime, Length
+                } else {
+                  Write-Host "No CFFI/RDKit-related LIBs found"
+                }
+              } else {
+                Write-Host "No LIB files found anywhere in build directory"
+              }
+              
               Write-Host "=== CHECKING SPECIFIC DIRECTORIES ==="
               @("bin", "lib", "bin\Release", "lib\Release", "bin\Debug", "lib\Debug") | ForEach-Object {
                 $dir = "rdkit\build\$_"
@@ -223,26 +242,25 @@ jobs:
           Write-Host "=== CREATING ARTIFACT DIRECTORY ==="
           New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64"
           Write-Host '-----------------'
-          Write-Host 'Looking for DLL files...'
+          Write-Host 'Looking for DLL and LIB files...'
+          
+          $BUILD = (git describe --tags --long HEAD).Split('-')[1]
           
           # Look for the DLL file in the bin directory
           if (Test-Path "rdkit\build\bin\Release\librdkitcffi.dll") {
             Write-Host 'Found librdkitcffi.dll in bin\Release directory'
             Get-ChildItem rdkit\build\bin\Release\librdkitcffi.dll
             Set-Location rdkit\build\bin\Release
-            $BUILD = (git describe --tags --long HEAD).Split('-')[1]
             Copy-Item librdkitcffi.dll "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\librdkitcffi.dll.$BUILD"
           } elseif (Test-Path "rdkit\build\bin\Release\rdkitcffi.dll") {
             Write-Host 'Found rdkitcffi.dll in bin\Release directory'
             Get-ChildItem rdkit\build\bin\Release\rdkitcffi.dll
             Set-Location rdkit\build\bin\Release
-            $BUILD = (git describe --tags --long HEAD).Split('-')[1]
             Copy-Item rdkitcffi.dll "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\rdkitcffi.dll.$BUILD"
           } elseif (Test-Path "rdkit\build\lib\Release\librdkitcffi.dll") {
             Write-Host 'Found librdkitcffi.dll in lib\Release directory'
             Get-ChildItem rdkit\build\lib\Release\librdkitcffi.dll
             Set-Location rdkit\build\lib\Release
-            $BUILD = (git describe --tags --long HEAD).Split('-')[1]
             Copy-Item librdkitcffi.dll "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\librdkitcffi.dll.$BUILD"
           } else {
             Write-Host 'DLL file not found in expected locations.'
@@ -257,7 +275,6 @@ jobs:
               if ($cffiDll) {
                 Write-Host "Found CFFI-related DLL, copying it:"
                 $cffiDll | Format-Table FullName, LastWriteTime, Length
-                $BUILD = (git describe --tags --long HEAD).Split('-')[1]
                 Copy-Item $cffiDll[0].FullName "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\$($cffiDll[0].Name).$BUILD"
               } else {
                 Write-Host "No CFFI-related DLL found among built DLLs"
@@ -267,6 +284,81 @@ jobs:
               Write-Host "No DLL files found anywhere in build directory"
               exit 1
             }
+          }
+          
+          # Look for the LIB file in the lib directory
+          if (Test-Path "rdkit\build\lib\Release\librdkitcffi.lib") {
+            Write-Host 'Found librdkitcffi.lib in lib\Release directory'
+            Get-ChildItem rdkit\build\lib\Release\librdkitcffi.lib
+            Set-Location rdkit\build\lib\Release
+            Copy-Item librdkitcffi.lib "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\librdkitcffi.lib.$BUILD"
+          } elseif (Test-Path "rdkit\build\lib\Release\rdkitcffi.lib") {
+            Write-Host 'Found rdkitcffi.lib in lib\Release directory'
+            Get-ChildItem rdkit\build\lib\Release\rdkitcffi.lib
+            Set-Location rdkit\build\lib\Release
+            Copy-Item rdkitcffi.lib "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\rdkitcffi.lib.$BUILD"
+          } elseif (Test-Path "rdkit\build\bin\Release\librdkitcffi.lib") {
+            Write-Host 'Found librdkitcffi.lib in bin\Release directory'
+            Get-ChildItem rdkit\build\bin\Release\librdkitcffi.lib
+            Set-Location rdkit\build\bin\Release
+            Copy-Item librdkitcffi.lib "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\librdkitcffi.lib.$BUILD"
+          } else {
+            Write-Host 'LIB file not found in expected locations.'
+            Write-Host 'Checking if any LIB was built anywhere:'
+            $allLibs = Get-ChildItem "rdkit\build" -Recurse -Filter "*.lib" -ErrorAction SilentlyContinue
+            if ($allLibs) {
+              Write-Host "Found LIB files in build directory:"
+              $allLibs | Format-Table FullName, LastWriteTime, Length
+              
+              # Look for any CFFI-related LIB
+              $cffiLib = $allLibs | Where-Object Name -match "cffi"
+              if ($cffiLib) {
+                Write-Host "Found CFFI-related LIB, copying it:"
+                $cffiLib | Format-Table FullName, LastWriteTime, Length
+                Copy-Item $cffiLib[0].FullName "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\$($cffiLib[0].Name).$BUILD"
+              } else {
+                Write-Host "No CFFI-related LIB found among built LIBs"
+                Write-Host "This is not critical - LIB files are optional for dynamic linking"
+              }
+            } else {
+              Write-Host "No LIB files found anywhere in build directory"
+              Write-Host "This is not critical - LIB files are optional for dynamic linking"
+            }
+          }
+          
+          # Try to generate import library from DLL if no LIB was found
+          Write-Host "=== ATTEMPTING TO GENERATE IMPORT LIBRARY ==="
+          $dllFile = Get-ChildItem "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64" -Filter "*.dll" | Select-Object -First 1
+          if ($dllFile) {
+            Write-Host "Found DLL file: $($dllFile.Name)"
+            Write-Host "Attempting to generate import library..."
+            
+            # Try using dumpbin and lib to create import library
+            try {
+              $dllPath = $dllFile.FullName
+              $libName = $dllFile.BaseName + ".lib"
+              $libPath = Join-Path $dllFile.DirectoryName $libName
+              
+              Write-Host "Generating import library: $libPath"
+              & dumpbin /exports $dllPath | Out-Null
+              if ($LASTEXITCODE -eq 0) {
+                Write-Host "dumpbin succeeded, attempting to create lib file..."
+                & lib /def:$dllPath /out:$libPath /machine:x64
+                if ($LASTEXITCODE -eq 0) {
+                  Write-Host "Successfully created import library: $libPath"
+                  Get-ChildItem $libPath | Format-Table Name, Length
+                } else {
+                  Write-Host "Failed to create import library with lib command"
+                }
+              } else {
+                Write-Host "dumpbin failed, cannot create import library"
+              }
+            } catch {
+              Write-Host "Error generating import library: $_"
+              Write-Host "This is not critical - dynamic linking will be used"
+            }
+          } else {
+            Write-Host "No DLL file found to generate import library from"
           }
           
           Write-Host 'Final artifact directory contents:'

@@ -10,8 +10,6 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
-use bindgen::CargoCallbacks;
-
 //one may need to set LD_LIBRARY_PATH manually if binary is called without cargo
 //e.g. export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/username/calc/rdkitcffi/lib/rdkitcffi_linux/linux-64
 
@@ -30,8 +28,8 @@ fn download_rdkit_artifact() -> Option<String> {
     let (lib_dir, artifact_name, release_tag) = if target_os == "windows" {
         (
             format!("{}/rdkitcffi_windows/windows-64", manifest_dir),
-            "rdkitcffi_windows.zip".to_string(),
-            "rdkit-windows-latest".to_string(),
+            "rdkitcffi_windows_vs.zip".to_string(),
+            "rdkit-windows-vs-latest".to_string(),
         )
     } else {
         (
@@ -53,18 +51,52 @@ fn download_rdkit_artifact() -> Option<String> {
         repo_owner, repo_name, release_tag, artifact_name
     );
 
-    // Download the artifact
-    if Command::new("wget")
-        .args(["-O", &artifact_name, &download_url])
-        .status()
-        .ok()?
-        .success()
-    {
+    println!(
+        "cargo:warning=Attempting to download from: {}",
+        download_url
+    );
+
+    let download_success = if target_os == "windows" {
+        // Use PowerShell for Windows
+        let result = Command::new("powershell")
+            .args([
+                "-Command",
+                &format!(
+                    "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '{}' -OutFile '{}' -UseBasicParsing",
+                    download_url, artifact_name
+                ),
+            ])
+            .status();
+
+        match result {
+            Ok(status) => status.success(),
+            Err(e) => {
+                println!("cargo:warning=Download failed: {}", e);
+                false
+            }
+        }
+    } else {
+        // Use wget for Linux
+        Command::new("wget")
+            .args(["-O", &artifact_name, &download_url])
+            .status()
+            .ok()?
+            .success()
+    };
+
+    // Extract and setup if download was successful
+    if download_success {
         // Extract the artifact
         if target_os == "windows" {
-            // Extract zip file for Windows
-            Command::new("unzip")
-                .args([&artifact_name, "-d", &manifest_dir])
+            // Use PowerShell Expand-Archive for Windows
+            Command::new("powershell")
+                .args([
+                    "-Command",
+                    &format!(
+                        "Expand-Archive -Path '{}' -DestinationPath '{}' -Force",
+                        artifact_name, manifest_dir
+                    ),
+                ])
                 .status()
                 .ok()?;
         } else {
@@ -81,21 +113,19 @@ fn download_rdkit_artifact() -> Option<String> {
         // Create symlinks (only for Linux)
         if target_os != "windows" {
             let lib_files = std::fs::read_dir(&lib_dir).ok()?;
-            for entry in lib_files {
-                if let Ok(entry) = entry {
-                    let filename = entry.file_name();
-                    if let Some(name) = filename.to_str() {
-                        if name.starts_with("librdkitcffi.so.1.") {
-                            Command::new("ln")
-                                .args(["-sf", name, &format!("{}/librdkitcffi.so", lib_dir)])
-                                .status()
-                                .ok()?;
-                            Command::new("ln")
-                                .args(["-sf", name, &format!("{}/librdkitcffi.so.1", lib_dir)])
-                                .status()
-                                .ok()?;
-                            break;
-                        }
+            for entry in lib_files.flatten() {
+                let filename = entry.file_name();
+                if let Some(name) = filename.to_str() {
+                    if name.starts_with("librdkitcffi.so.1.") {
+                        Command::new("ln")
+                            .args(["-sf", name, &format!("{}/librdkitcffi.so", lib_dir)])
+                            .status()
+                            .ok()?;
+                        Command::new("ln")
+                            .args(["-sf", name, &format!("{}/librdkitcffi.so.1", lib_dir)])
+                            .status()
+                            .ok()?;
+                        break;
                     }
                 }
             }
@@ -264,7 +294,34 @@ fn main() {
     println!("cargo:rustc-link-search=native={}", shared_lib_dir);
 
     if target_os == "windows" {
-        println!("cargo:rustc-link-lib=dylib=rdkitcffi");
+        // Check for various possible file names
+        let possible_lib_names = vec![
+            "rdkitcffi.lib",
+            "librdkitcffi.lib",
+            "rdkitcffi.dll.lib",
+            "librdkitcffi.dll.lib",
+        ];
+
+        let mut lib_found = false;
+        for lib_name in &possible_lib_names {
+            let lib_path = std::path::Path::new(&shared_lib_dir).join(lib_name);
+            if lib_path.exists() {
+                println!("cargo:warning=Found import library: {}", lib_name);
+                lib_found = true;
+                break;
+            }
+        }
+
+        if lib_found {
+            // If we have the import library, use static linking
+            println!("cargo:rustc-link-lib=static=rdkitcffi");
+            println!("cargo:warning=Using static linking with import library");
+        } else {
+            // Otherwise use dynamic linking
+            println!("cargo:rustc-link-lib=dylib=rdkitcffi");
+            println!("cargo:warning=Using dynamic linking (no import library found)");
+        }
+
         // Set PATH for Windows DLL loading
         println!(
             "cargo:rustc-env=PATH={};{}",
@@ -281,9 +338,8 @@ fn main() {
     println!("cargo:rerun-if-changed=include/cffiwrapper.h");
 
     // Generate bindings
-    let bindings = bindgen::Builder::default()
+    let mut builder = bindgen::Builder::default()
         .header("include/cffiwrapper.h")
-        .clang_arg("-Iinclude/boost")
         .clang_arg("-Iinclude")
         .allowlist_function("version")
         .allowlist_function("enable_logging")
@@ -324,8 +380,28 @@ fn main() {
         .allowlist_function("charge_parent")
         .allowlist_function("fragment_parent")
         .allowlist_function("prefer_coordgen")
-        .allowlist_function("set_2d_coords_aligned")
-        .parse_callbacks(Box::new(CargoCallbacks::new()))
+        .allowlist_function("set_2d_coords_aligned");
+
+    // Add platform-specific include paths
+    if target_os == "windows" {
+        // For Windows, we don't need additional Boost includes since the DLL is pre-built
+        // and contains all the necessary symbols
+        println!("cargo:warning=Using pre-built Windows DLL - no additional includes needed");
+    } else {
+        // For Linux, add Boost include path if available
+        let possible_boost_paths = vec!["/usr/include", "/usr/local/include", "/opt/boost/include"];
+
+        for path in possible_boost_paths {
+            if std::path::Path::new(path).exists() {
+                println!("cargo:warning=Found Boost headers at: {}", path);
+                builder = builder.clang_arg(format!("-I{}", path));
+                break;
+            }
+        }
+    }
+
+    let bindings = builder
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .generate()
         .expect("Unable to generate bindings");
 
