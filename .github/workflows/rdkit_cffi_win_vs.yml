@@ -283,17 +283,11 @@ jobs:
           path: rdkitcffi_windows
           retention-days: 30
 
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: rdkitcffi_windows_vs
-          path: release_files
-
       - name: Create Release
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         with:
-          files: release_files
+          files: rdkitcffi_windows
           tag_name: rdkit-windows-vs-latest
           name: Latest RDKit CFFI Windows VS Build
           body: Automated RDKit CFFI Windows DLL build using Visual Studio
