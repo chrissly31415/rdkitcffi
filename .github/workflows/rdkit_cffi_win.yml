@@ -58,19 +58,6 @@ jobs:
         run: |
           git clone https://github.com/rdkit/rdkit.git --branch Release_2024_09 --single-branch rdkit --depth=1
 
-      - name: Cache CMake and build artifacts
-        uses: actions/cache@v4
-        with:
-          path: |
-            rdkit/build/CMakeCache.txt
-            rdkit/build/CMakeFiles
-            rdkit/build/lib
-            rdkit/build/bin
-          key: ${{ runner.os }}-rdkit-build-${{ hashFiles('**/rdkit_cffi_win.yml') }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-rdkit-build-${{ hashFiles('**/rdkit_cffi_win.yml') }}-
-            ${{ runner.os }}-rdkit-build-
-
       - name: Configure build (Run CMake)
         shell: msys2 {0}
         run: |
