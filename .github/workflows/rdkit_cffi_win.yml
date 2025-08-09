@@ -43,6 +43,7 @@ jobs:
             base-devel
             git
             mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
             mingw-w64-x86_64-boost
             mingw-w64-x86_64-cairo
             mingw-w64-x86_64-freetype
@@ -72,17 +73,15 @@ jobs:
             ${{ runner.os }}-rdkit-build-
 
       - name: Configure build (Run CMake)
-        shell: msys2 {0}
         run: |
           cd rdkit && mkdir -p build && cd build
           
           echo "=== RUNNING FULL CMAKE CONFIGURATION ==="
           set -e  # Exit on error
           cmake .. \
-            -G 'MSYS Makefiles' \
+            -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DRDK_BUILD_CFFI_LIB=ON \
-            -DRDK_CFFI_STATIC=ON \
             -DRDK_INSTALL_INTREE=OFF \
             -DRDK_BUILD_CPP_TESTS=OFF \
             -DRDK_BUILD_COORDGEN_SUPPORT=ON \
@@ -93,8 +92,8 @@ jobs:
             -DWITH_PNG=OFF \
             -DRDK_BUILD_INCHI_SUPPORT=ON \
             -DRDK_BUILD_PYTHON_WRAPPERS=OFF \
-            -DRDK_USE_BOOST_SERIALIZATION=ON \
-            -DRDK_USE_BOOST_IOSTREAMS=ON \
+            -DRDK_USE_BOOST_SERIALIZATION=OFF \
+            -DRDK_USE_BOOST_IOSTREAMS=OFF \
             -DFREETYPE_INCLUDE_DIRS=/mingw64/include/freetype2 \
             -DFREETYPE_LIBRARY=/mingw64/lib/libfreetype.dll.a \
             -DCMAKE_INSTALL_PREFIX=/mingw64 \
@@ -126,7 +125,6 @@ jobs:
           echo "=== CMAKE CONFIGURATION SUCCESSFUL ==="
 
       - name: Build
-        shell: msys2 {0}
         run: |
           cd rdkit/build
           # Build all required RDKit libraries first, then the CFFI library
