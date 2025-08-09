@@ -43,7 +43,6 @@ jobs:
             base-devel
             git
             mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-ninja
             mingw-w64-x86_64-boost
             mingw-w64-x86_64-cairo
             mingw-w64-x86_64-freetype
@@ -73,6 +72,7 @@ jobs:
             ${{ runner.os }}-rdkit-build-
 
       - name: Configure build (Run CMake)
+        shell: msys2 {0}
         run: |
           cd rdkit && mkdir -p build && cd build
           
@@ -125,6 +125,7 @@ jobs:
           echo "=== CMAKE CONFIGURATION SUCCESSFUL ==="
 
       - name: Build
+        shell: msys2 {0}
         run: |
           cd rdkit/build
           # Build all required RDKit libraries first, then the CFFI library
