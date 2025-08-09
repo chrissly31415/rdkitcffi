@@ -215,7 +215,21 @@ jobs:
           }
           
           Write-Host "=== FINAL ARTIFACT DIRECTORY CONTENTS ==="
-          Get-ChildItem "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\" | Format-Table Name, Length
+          $artifactDir = "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64"
+          if (Test-Path $artifactDir) {
+            try {
+              $files = Get-ChildItem $artifactDir -ErrorAction Stop
+              $files | Format-Table Name, Length
+              Write-Host "✅ Artifact creation completed successfully!"
+              Write-Host "=== SCRIPT COMPLETED SUCCESSFULLY ==="
+            } catch {
+              Write-Host "WARNING: Could not list directory contents: $_"
+              Write-Host "But files were copied successfully, continuing..."
+            }
+          } else {
+            Write-Host "ERROR: Artifact directory not found: $artifactDir"
+            exit 1
+          }
 
       - name: Create artifact
         shell: powershell
