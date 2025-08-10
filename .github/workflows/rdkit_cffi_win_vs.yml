@@ -8,12 +8,6 @@ on:
         required: false
         default: false
         type: boolean
-  push:
-    branches:
-      - "master"
-  pull_request:
-    branches:
-      - "master"
 
 jobs:
   build:
