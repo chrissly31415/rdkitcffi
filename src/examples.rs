@@ -14,11 +14,11 @@ use std::fs::read_to_string;
 use std::os::raw::c_char;
 use std::str;
 
+use crate::bindings::free_ptr;
 use crate::bindings::{add_hs, enable_logging, remove_all_hs, set_3d_coords, version};
 use crate::bindings::{
     canonical_tautomer, get_descriptors, get_inchi, get_json, get_mol, get_molblock, get_smiles,
 };
-use crate::bindings::{free, free_ptr};
 
 use super::{JsonBase, Molecule};
 
@@ -100,7 +100,7 @@ mod tests {
             let pkl_mol: *mut c_char = get_mol(orig_sdf.as_ptr(), pkl_size, rdkit_json.as_ptr());
             let inchi_cchar = get_inchi(pkl_mol, *pkl_size, rdkit_json.as_ptr());
             println!("InChi: {:#?}", CStr::from_ptr(inchi_cchar));
-            free(pkl_size as *mut libc::c_void);
+            libc::free(pkl_size as *mut libc::c_void);
             free_ptr(pkl_mol);
             free_ptr(inchi_cchar);
         }
@@ -114,7 +114,7 @@ mod tests {
             let pkl_mol: *mut c_char = get_mol(orig_json.as_ptr(), pkl_size, add_json.as_ptr());
             let inchi_cchar = get_inchi(pkl_mol, *pkl_size, add_json.as_ptr());
             println!("InChi: {:#?}", CStr::from_ptr(inchi_cchar));
-            free(pkl_size as *mut libc::c_void);
+            libc::free(pkl_size as *mut libc::c_void);
             free_ptr(pkl_mol);
             free_ptr(inchi_cchar);
         }
@@ -142,7 +142,7 @@ mod tests {
                 println!("Name: {:?}\n\n", k.extensions);
             }
 
-            free(pkl_size as *mut libc::c_void);
+            libc::free(pkl_size as *mut libc::c_void);
             free_ptr(pkl_mol);
             free_ptr(rdkit_json_cchar);
         }

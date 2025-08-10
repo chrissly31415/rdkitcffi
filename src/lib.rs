@@ -119,6 +119,7 @@
 
 use std::collections::HashMap;
 
+use libc;
 use std::ffi::{CStr, CString};
 use std::fs::read_to_string;
 use std::mem;
@@ -128,11 +129,11 @@ pub mod examples;
 
 pub mod bindings;
 
+use bindings::free_ptr;
 use bindings::{add_hs, remove_all_hs, set_3d_coords};
 use bindings::{
     canonical_tautomer, charge_parent, cleanup, fragment_parent, neutralize, normalize, reionize,
 };
-use bindings::{free, free_ptr};
 use bindings::{
     get_cxsmiles, get_descriptors, get_inchi, get_inchikey_for_inchi, get_json, get_mol,
     get_molblock, get_qmol, get_smarts, get_smiles, get_substruct_match, get_substruct_matches,
@@ -202,7 +203,7 @@ impl Molecule {
             if pkl_mol.is_null() || { *pkl_size == 0 } {
                 // Clean up allocated memory if molecule creation fails
                 if !pkl_size.is_null() {
-                    free(pkl_size as *mut c_void);
+                    libc::free(pkl_size as *mut c_void);
                 }
                 return None;
             }
@@ -553,7 +554,7 @@ impl Molecule {
                 fp_bytes.push(nb);
             }
             let res = fp_bytes.to_owned();
-            free(n_bytes as *mut c_void);
+            libc::free(n_bytes as *mut c_void);
             free_ptr(fp_cchar);
             res
         }
@@ -583,7 +584,7 @@ impl Molecule {
                 fp_bytes.push(nb);
             }
             let res = fp_bytes.to_owned();
-            free(n_bytes as *mut c_void);
+            libc::free(n_bytes as *mut c_void);
             free_ptr(fp_cchar);
             res
         }
@@ -613,7 +614,7 @@ impl Molecule {
                 fp_bytes.push(nb);
             }
             let res = fp_bytes.to_owned();
-            free(n_bytes as *mut c_void);
+            libc::free(n_bytes as *mut c_void);
             free_ptr(fp_cchar);
             res
         }
@@ -640,7 +641,7 @@ impl Molecule {
             }
             // Free size data if pointer is not null
             if !self.pkl_size.is_null() {
-                free(self.pkl_size as *mut c_void); // Use libc free
+                libc::free(self.pkl_size as *mut c_void); // Use libc free
                 self.pkl_size = std::ptr::null_mut(); // Null the pointer
             }
         }

@@ -294,23 +294,40 @@ fn main() {
     println!("cargo:rustc-link-search=native={}", shared_lib_dir);
 
     if target_os == "windows" {
-        // Check for various possible file names
-        let possible_lib_names = vec![
-            "rdkitcffi.lib",
-            "librdkitcffi.lib",
-            "rdkitcffi.dll.lib",
-            "librdkitcffi.dll.lib",
-        ];
-
-        let mut lib_found = false;
-        for lib_name in &possible_lib_names {
-            let lib_path = std::path::Path::new(&shared_lib_dir).join(lib_name);
-            if lib_path.exists() {
-                println!("cargo:warning=Found import library: {}", lib_name);
-                lib_found = true;
-                break;
+        // Copy versioned files to expected names
+        if let Ok(entries) = std::fs::read_dir(&shared_lib_dir) {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    let file_name = entry.file_name();
+                    if let Some(name) = file_name.to_str() {
+                        // Copy versioned DLL to expected name
+                        if name.starts_with("rdkitcffi.dll.") {
+                            let expected_dll =
+                                std::path::Path::new(&shared_lib_dir).join("rdkitcffi.dll");
+                            if let Err(e) = std::fs::copy(&entry.path(), &expected_dll) {
+                                println!("cargo:warning=Failed to copy DLL: {}", e);
+                            } else {
+                                println!("cargo:warning=Copied {} to rdkitcffi.dll", name);
+                            }
+                        }
+                        // Copy versioned LIB to expected name
+                        if name.starts_with("rdkitcffi.lib.") {
+                            let expected_lib =
+                                std::path::Path::new(&shared_lib_dir).join("rdkitcffi.lib");
+                            if let Err(e) = std::fs::copy(&entry.path(), &expected_lib) {
+                                println!("cargo:warning=Failed to copy LIB: {}", e);
+                            } else {
+                                println!("cargo:warning=Copied {} to rdkitcffi.lib", name);
+                            }
+                        }
+                    }
+                }
             }
         }
+
+        // Check if we now have the expected files
+        let lib_path = std::path::Path::new(&shared_lib_dir).join("rdkitcffi.lib");
+        let lib_found = lib_path.exists();
 
         if lib_found {
             // If we have the import library, use static linking
@@ -328,6 +345,28 @@ fn main() {
             shared_lib_dir,
             env::var("PATH").unwrap_or_default()
         );
+
+        // Copy DLL to target directory for runtime access
+        let target_dir = std::env::var("OUT_DIR").unwrap();
+        let target_parent = std::path::Path::new(&target_dir)
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap();
+        let dll_source = std::path::Path::new(&shared_lib_dir).join("rdkitcffi.dll");
+
+        // Copy DLL to the deps directory where the test executable will look for it
+        let deps_dir = target_parent.join("deps");
+        let dll_target = deps_dir.join("rdkitcffi.dll");
+
+        if let Err(e) = std::fs::copy(&dll_source, &dll_target) {
+            println!("cargo:warning=Failed to copy DLL to deps directory: {}", e);
+        } else {
+            println!(
+                "cargo:warning=Copied DLL to deps directory: {}",
+                dll_target.display()
+            );
+        }
     } else {
         println!("cargo:rustc-link-lib=dylib=rdkitcffi");
         // Set LD_LIBRARY_PATH for Linux
@@ -405,7 +444,7 @@ fn main() {
         .generate()
         .expect("Unable to generate bindings");
 
-    let out_path = PathBuf::from("./src");
+    let out_path = PathBuf::from("src");
     bindings
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings!");
