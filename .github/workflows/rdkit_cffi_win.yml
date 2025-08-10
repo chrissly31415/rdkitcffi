@@ -178,37 +178,42 @@ jobs:
           echo 'Verifying DLL file:'
           file $GITHUB_WORKSPACE/rdkitcffi_windows/windows-64/librdkitcffi.dll
 
-      - name: Create artifact
+      - name: Create zip artifact
+        shell: powershell
         run: |
-          cd $env:GITHUB_WORKSPACE
-          # Check if the directory exists and has files
-          if (Test-Path "rdkitcffi_windows") {
-            Write-Host "Found rdkitcffi_windows directory, contents:"
-            Get-ChildItem -Recurse "rdkitcffi_windows"
-            
-            # Show current directory and file for debugging
-            Write-Host "Current directory:"
-            Get-Location
-            Write-Host "Directory details:"
-            Get-ChildItem "rdkitcffi_windows" | Format-List
-          } else {
-            Write-Host "ERROR: rdkitcffi_windows directory not found!"
-            Get-ChildItem
-            exit 1
-          }
+          Write-Host "=== CREATING ZIP ARTIFACT ==="
+          Set-Location $env:GITHUB_WORKSPACE
+          Write-Host "Current directory:"
+          Get-Location
+          Write-Host "Creating zip file..."
+          Compress-Archive -Path "rdkitcffi_windows" -DestinationPath "rdkitcffi_windows.zip" -Force
+          Write-Host "Zip file created:"
+          Get-ChildItem "rdkitcffi_windows.zip" | Format-Table Name, Length
+          Write-Host "Zip file contents:"
+          Expand-Archive -Path "rdkitcffi_windows.zip" -DestinationPath "test_extract" -Force
+          Get-ChildItem "test_extract" -Recurse | Format-Table FullName, Length
 
-      - name: Verify directory exists
+      - name: Verify zip file exists
+        shell: powershell
         run: |
+          Write-Host "=== VERIFYING ZIP FILE FOR RELEASE ==="
           Write-Host "Current directory:"
           Get-Location
           Write-Host "Files in current directory:"
-          Get-ChildItem
-          Write-Host "Checking for rdkitcffi_windows directory:"
-          if (Test-Path "rdkitcffi_windows") {
-            Write-Host "✅ Directory found!"
-            Get-ChildItem "rdkitcffi_windows" -Recurse
+          Get-ChildItem | Where-Object Name -match "zip" | Format-Table Name, Length, LastWriteTime
+          Write-Host "Checking for rdkitcffi_windows.zip:"
+          if (Test-Path "rdkitcffi_windows.zip") {
+            Write-Host "✅ Zip file found!"
+            $zipInfo = Get-ChildItem "rdkitcffi_windows.zip"
+            Write-Host "Zip file details:"
+            Write-Host "  Name: $($zipInfo.Name)"
+            Write-Host "  Size: $($zipInfo.Length) bytes"
+            Write-Host "  Created: $($zipInfo.CreationTime)"
+            Write-Host "  Modified: $($zipInfo.LastWriteTime)"
           } else {
-            Write-Host "❌ Directory not found!"
+            Write-Host "❌ Zip file not found!"
+            Write-Host "Available files:"
+            Get-ChildItem | Format-Table Name, Length
             exit 1
           }
 
@@ -223,7 +228,7 @@ jobs:
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         with:
-          files: rdkitcffi_windows
+          files: rdkitcffi_windows.zip
           tag_name: rdkit-windows-latest
           name: Latest RDKit CFFI Windows Build
           body: Automated RDKit CFFI Windows DLL build
