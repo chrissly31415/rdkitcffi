@@ -178,49 +178,30 @@ jobs:
           
           Write-Host "=== COPYING BUILD ARTIFACTS ==="
           
-          # Generate a simple build number if git describe fails
-          try {
-            $BUILD = (git describe --tags --long HEAD).Split('-')[1]
-          } catch {
-            $BUILD = Get-Date -Format "yyyyMMdd"
-            Write-Host "Using date as build number: $BUILD"
-          }
+          $BUILD = Get-Date -Format "yyyyMMdd"
+          Write-Host "Using date as build number: $BUILD"
           
           # Copy DLL from known location
           $dllSource = "rdkit\build\bin\Release\rdkitcffi.dll"
           $dllDest = "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\rdkitcffi.dll.$BUILD"
           
-          if (Test-Path $dllSource) {
-            Write-Host "Found DLL at: $dllSource"
-            Copy-Item $dllSource $dllDest
-            Write-Host "Copied DLL to: $dllDest"
-            Get-ChildItem $dllDest | Format-Table Name, Length
-          } else {
-            Write-Host "ERROR: DLL not found at expected location: $dllSource"
-            exit 1
-          }
+          Copy-Item $dllSource $dllDest
+          Write-Host "Copied DLL to: $dllDest"
+          Get-ChildItem $dllDest | Format-Table Name, Length
+
           
           # Copy LIB from known location
           $libSource = "rdkit\build\lib\Release\rdkitcffi.lib"
           $libDest = "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64\rdkitcffi.lib.$BUILD"
           
-          if (Test-Path $libSource) {
-            Write-Host "Found LIB at: $libSource"
-            Copy-Item $libSource $libDest
-            Write-Host "Copied LIB to: $libDest"
-            Get-ChildItem $libDest | Format-Table Name, Length
-          } else {
-            Write-Host "WARNING: LIB not found at expected location: $libSource"
-            Write-Host "This is not critical - dynamic linking will be used"
-          }
-          
+          Copy-Item $libSource $libDest
+          Write-Host "Copied LIB to: $libDest"
+          Get-ChildItem $libDest | Format-Table Name, Length
+           
           Write-Host "=== FINAL ARTIFACT DIRECTORY CONTENTS ==="
           $artifactDir = "$env:GITHUB_WORKSPACE\rdkitcffi_windows\windows-64"
           $files = Get-ChildItem $artifactDir
           $files | Format-Table Name, Length
-          Write-Host "Artifact creation completed successfully!"
-          Write-Host "=== SCRIPT COMPLETED SUCCESSFULLY ==="
-    
 
       - name: Create artifact
         shell: powershell
