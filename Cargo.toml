@@ -1,7 +1,7 @@
 [package]
 description = "A rust wrapper for some RDKit cheminformatics functionality"
 name = "rdkitcffi"
-version = "0.1.1"
+version = "0.2.0"
 links = "rdkitcffi"
 build = "build.rs"
 edition = "2018"

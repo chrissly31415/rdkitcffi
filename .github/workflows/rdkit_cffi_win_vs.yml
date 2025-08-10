@@ -125,13 +125,14 @@ jobs:
             -DRDK_BUILD_COORDGEN_SUPPORT=ON `
             -DRDK_BUILD_MAEPARSER_SUPPORT=ON `
             -DRDK_OPTIMIZE_POPCNT=ON `
-            -DRDK_BUILD_TEST_GZIP=ON `
+            -DWITH_ZLIB=OFF `
+            -DWITH_BZip2=OFF `
+            -DWITH_PNG=OFF `
             -DRDK_BUILD_FREESASA_SUPPORT=ON `
             -DRDK_BUILD_AVALON_SUPPORT=ON `
             -DRDK_BUILD_INCHI_SUPPORT=ON `
             -DRDK_BUILD_YAEHMOP_SUPPORT=ON `
             -DRDK_BUILD_XYZ2MOL_SUPPORT=ON `
-            -DRDK_BUILD_CAIRO_SUPPORT=ON `
             -DRDK_BUILD_THREADSAFE_SSS=ON `
             -DRDK_BUILD_SWIG_WRAPPERS=OFF `
             -DRDK_BUILD_CFFI_LIB=ON `
@@ -220,29 +221,6 @@ jobs:
           Expand-Archive -Path "rdkitcffi_windows_vs.zip" -DestinationPath "test_extract" -Force
           Get-ChildItem "test_extract" -Recurse | Format-Table FullName, Length
 
-      - name: Verify zip file exists
-        shell: powershell
-        run: |
-          Write-Host "=== VERIFYING ZIP FILE FOR RELEASE ==="
-          Write-Host "Current directory:"
-          Get-Location
-          Write-Host "Files in current directory:"
-          Get-ChildItem | Where-Object Name -match "zip" | Format-Table Name, Length, LastWriteTime
-          Write-Host "Checking for rdkitcffi_windows_vs.zip:"
-          if (Test-Path "rdkitcffi_windows_vs.zip") {
-            Write-Host "✅ Zip file found!"
-            $zipInfo = Get-ChildItem "rdkitcffi_windows_vs.zip"
-            Write-Host "Zip file details:"
-            Write-Host "  Name: $($zipInfo.Name)"
-            Write-Host "  Size: $($zipInfo.Length) bytes"
-            Write-Host "  Created: $($zipInfo.CreationTime)"
-            Write-Host "  Modified: $($zipInfo.LastWriteTime)"
-          } else {
-            Write-Host "❌ Zip file not found!"
-            Write-Host "Available files:"
-            Get-ChildItem | Format-Table Name, Length
-            exit 1
-          }
 
       - name: Create Release
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'

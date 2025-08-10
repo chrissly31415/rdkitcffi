@@ -1,5 +1,6 @@
 name: RDKit CFFI Windows 2024.09
 
+# Using MSYS2 to build the RDKit CFFI library, Visual Studio is preferred: see rdkit_cffi_win_vs.yml
 on:
   workflow_dispatch:
     inputs:

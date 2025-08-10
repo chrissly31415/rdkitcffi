@@ -355,17 +355,33 @@ fn main() {
             .unwrap();
         let dll_source = std::path::Path::new(&shared_lib_dir).join("rdkitcffi.dll");
 
-        // Copy DLL to the deps directory where the test executable will look for it
-        let deps_dir = target_parent.join("deps");
-        let dll_target = deps_dir.join("rdkitcffi.dll");
+        // Copy DLL to multiple locations to ensure it's found
+        let locations = vec![
+            target_parent.join("deps"),    // For test executables
+            target_parent.join("debug"),   // For debug executables
+            target_parent.join("release"), // For release executables
+        ];
 
-        if let Err(e) = std::fs::copy(&dll_source, &dll_target) {
-            println!("cargo:warning=Failed to copy DLL to deps directory: {}", e);
-        } else {
-            println!(
-                "cargo:warning=Copied DLL to deps directory: {}",
-                dll_target.display()
-            );
+        for location in locations {
+            if let Err(e) = std::fs::create_dir_all(&location) {
+                println!(
+                    "cargo:warning=Failed to create directory {}: {}",
+                    location.display(),
+                    e
+                );
+                continue;
+            }
+
+            let dll_target = location.join("rdkitcffi.dll");
+            if let Err(e) = std::fs::copy(&dll_source, &dll_target) {
+                println!(
+                    "cargo:warning=Failed to copy DLL to {}: {}",
+                    location.display(),
+                    e
+                );
+            } else {
+                println!("cargo:warning=Copied DLL to: {}", dll_target.display());
+            }
         }
     } else {
         println!("cargo:rustc-link-lib=dylib=rdkitcffi");
