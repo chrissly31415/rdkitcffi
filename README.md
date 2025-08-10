@@ -9,8 +9,8 @@ It makes use of its CFFI interface, see also this [blog post](https://greglandru
  
 Only a limited functionality is being exposed via cffi by RDKit and not all of this is available yet via this interface. Have a look at the examples below and the test functions.  
  
-The rust wrapper is linked against a pre-built RDKit shared library (MinimalLib), which is stored as an artifact created via github actions and is automatically downloaded from this [location](https://github.com/chrissly31415/rdkitcffi/releases/download/rdkit-latest/rdkitcffi_linux.tar.gz) during build. 
-Currently, only linux is supported.  
+The rust wrapper is linked against a pre-built RDKit shared library, which is stored as an artifact created via github actions and is automatically downloaded from this [location](https://github.com/chrissly31415/rdkitcffi/releases/download/rdkit-latest/rdkitcffi_linux.tar.gz) during build. 
+
 
  ## Examples
 
@@ -138,11 +138,6 @@ After installation you may want to update your LD_LIBRARY_PATH in order to run b
 
 ```
 export LD_LIBRARY_PATH=/home/username/rdkitcffi/lib/rdkitcffi_linux/linux-64/:$LD_LIBRARY_PATH
-```
-
-In case you are missing libboost-serialization libs:
-```
-sudo apt-get install -y libboost-all-dev
 ```
 
 ## Using it in your project
