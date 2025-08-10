@@ -1,5 +1,6 @@
 [![Rust](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rust.yml/badge.svg)](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rust.yml)
-[![RDKit CFFI Build](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rdkit_cffi.yml/badge.svg)](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rdkit_cffi.yml)
+[![CFFI Linux Build](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rdkit_cffi.yml/badge.svg)](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rdkit_cffi.yml)
+[![CFFI Windows Build](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rdkit_cffi_win_vs.yml/badge.svg)](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rdkit_cffi_win_vs.yml)
 
 # rdkitcffi
 

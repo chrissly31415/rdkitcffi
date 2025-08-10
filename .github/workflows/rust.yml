@@ -8,13 +8,13 @@ on:
         required: false
         default: false
         type: boolean
-  # push:
-  #   branches: 
-  #     - "master"
+  push:
+    branches: 
+      - "master"
 
-  # pull_request:
-  #   branches: 
-  #     - "master"
+  pull_request:
+    branches: 
+      - "master"
 
 env:
   CARGO_TERM_COLOR: always
