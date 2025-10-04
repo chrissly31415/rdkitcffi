@@ -8,6 +8,12 @@
 //! transferred from the backend via the cffi interface as string types. Addiitional arguments can be passed as json strings.  
 //! This also means that the structure of objects is different from the C/C++ and python APIs.  
 //!
+//! ## Thread Safety
+//!
+//! **IMPORTANT**: The `Molecule` struct contains raw pointers and is not `Send` or `Sync`, so it cannot
+//! be safely shared between threads. However, RDKit CFFI itself is thread-safe when each thread
+//! creates its own molecules. For parallel processing, create separate `Molecule` instances in each thread.
+//!
 //! [github repository](https://github.com/chrissly31415/rdkitcffi).
 //!
 //! Please have a look at the examples below and the test functions.  
