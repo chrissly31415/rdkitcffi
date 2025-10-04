@@ -216,9 +216,16 @@ impl Molecule {
     pub fn get_mol(input: &str, json_info: &str) -> Molecule {
         let input_cstr = CString::new(input).unwrap();
         let json_info = CString::new(json_info).unwrap();
-        let pkl_size: *mut usize = unsafe { libc::malloc(mem::size_of::<u64>()) as *mut usize };
+        let pkl_size: *mut usize = unsafe { libc::malloc(mem::size_of::<usize>()) as *mut usize };
+        if pkl_size.is_null() {
+            panic!("Memory allocation failed!");
+        }
+
         let pkl_mol = unsafe { get_mol(input_cstr.as_ptr(), pkl_size, json_info.as_ptr()) };
         if pkl_mol.is_null() {
+            unsafe {
+                libc::free(pkl_size as *mut c_void);
+            } // Fix memory leak
             panic!("Could not create molecule!");
         }
         Molecule { pkl_size, pkl_mol }
@@ -545,9 +552,18 @@ impl Molecule {
     pub fn get_morgan_fp_as_bytes(&self, json_info: &str) -> Vec<i8> {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
-            let n_bytes: *mut usize = libc::malloc(mem::size_of::<u64>()) as *mut usize;
+            let n_bytes: *mut usize = libc::malloc(mem::size_of::<usize>()) as *mut usize;
+            if n_bytes.is_null() {
+                panic!("Memory allocation failed!");
+            }
+
             let fp_cchar: *mut c_char =
                 get_morgan_fp_as_bytes(self.pkl_mol, *self.pkl_size, n_bytes, json_info.as_ptr());
+            if fp_cchar.is_null() {
+                libc::free(n_bytes as *mut c_void);
+                panic!("Fingerprint generation failed!");
+            }
+
             let mut fp_bytes: Vec<i8> = Vec::new();
             for pos in 0..*n_bytes {
                 let nb: i8 = *fp_cchar.offset(pos as _);
@@ -575,9 +591,18 @@ impl Molecule {
     pub fn get_rdkit_fp_as_bytes(&self, json_info: &str) -> Vec<i8> {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
-            let n_bytes: *mut usize = libc::malloc(mem::size_of::<u64>()) as *mut usize;
+            let n_bytes: *mut usize = libc::malloc(mem::size_of::<usize>()) as *mut usize;
+            if n_bytes.is_null() {
+                panic!("Memory allocation failed!");
+            }
+
             let fp_cchar: *mut c_char =
                 get_rdkit_fp_as_bytes(self.pkl_mol, *self.pkl_size, n_bytes, json_info.as_ptr());
+            if fp_cchar.is_null() {
+                libc::free(n_bytes as *mut c_void);
+                panic!("Fingerprint generation failed!");
+            }
+
             let mut fp_bytes: Vec<i8> = Vec::new();
             for pos in 0..*n_bytes {
                 let nb: i8 = *fp_cchar.offset(pos as _);
@@ -605,9 +630,18 @@ impl Molecule {
     pub fn get_pattern_fp_as_bytes(&self, json_info: &str) -> Vec<i8> {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
-            let n_bytes: *mut usize = libc::malloc(mem::size_of::<u64>()) as *mut usize;
+            let n_bytes: *mut usize = libc::malloc(mem::size_of::<usize>()) as *mut usize;
+            if n_bytes.is_null() {
+                panic!("Memory allocation failed!");
+            }
+
             let fp_cchar: *mut c_char =
                 get_pattern_fp_as_bytes(self.pkl_mol, *self.pkl_size, n_bytes, json_info.as_ptr());
+            if fp_cchar.is_null() {
+                libc::free(n_bytes as *mut c_void);
+                panic!("Fingerprint generation failed!");
+            }
+
             let mut fp_bytes: Vec<i8> = Vec::new();
             for pos in 0..*n_bytes {
                 let nb: i8 = *fp_cchar.offset(pos as _);
@@ -624,9 +658,16 @@ impl Molecule {
     pub fn get_qmol(input: &str, json_info: &str) -> Option<Molecule> {
         let input_cstr = CString::new(input).unwrap();
         let json_info = CString::new(json_info).unwrap();
-        let pkl_size: *mut usize = unsafe { libc::malloc(mem::size_of::<u64>()) as *mut usize };
+        let pkl_size: *mut usize = unsafe { libc::malloc(mem::size_of::<usize>()) as *mut usize };
+        if pkl_size.is_null() {
+            return None;
+        }
+
         let pkl_mol = unsafe { get_qmol(input_cstr.as_ptr(), pkl_size, json_info.as_ptr()) };
         if pkl_mol.is_null() {
+            unsafe {
+                libc::free(pkl_size as *mut c_void);
+            } // Fix memory leak
             return None;
         }
         return Some(Molecule { pkl_size, pkl_mol });

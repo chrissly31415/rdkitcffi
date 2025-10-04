@@ -131,6 +131,76 @@ fn morgan_fp_bytes() {
 }
 
 #[test]
+fn rdkit_fp() {
+    let smiles = "OCC=CCO";
+    let options = json!({
+        "nBits": 64
+    })
+    .to_string();
+    let mol = Molecule::new(smiles).unwrap();
+    let fps = mol.get_rdkit_fp(&options);
+    println!("RDKit Fingerprints: {:?}", fps);
+    println!("Length: {:?}", fps.len());
+    assert_eq!(fps.len(), 64);
+    assert_eq!(
+        fps,
+        "1000100100000000010000000000100100000000001110000010101011011000"
+    );
+}
+
+#[test]
+fn rdkit_fp_bytes() {
+    let smiles = "OCC=CCO";
+    let options = r#"{
+            "radius": 2,
+            "nBits": 64
+        }"#;
+    let mol = Molecule::new(smiles).unwrap();
+    let fps: Vec<i8> = mol.get_rdkit_fp_as_bytes(options);
+    println!("RDKit fingerprint bytes: {:?}", fps);
+    // Should have 8 bytes for 64 bits
+    assert_eq!(fps.len(), 8);
+    let expected_fps: Vec<i8> = vec![-111, 0, 2, -112, 0, 28, 84, 27];
+    assert_eq!(fps, expected_fps);
+}
+
+#[test]
+fn pattern_fp() {
+    let smiles = "OCC=CCO";
+    let options = json!({
+        "nBits": 64
+    })
+    .to_string();
+    let mol = Molecule::new(smiles).unwrap();
+    let fps = mol.get_pattern_fp(&options);
+    println!("Pattern Fingerprints: {:?}", fps);
+    println!("Length: {:?}", fps.len());
+    assert_eq!(fps.len(), 64);
+    assert_eq!(fps.len(), 64);
+    assert_eq!(
+        fps,
+        "0001001101110101010011000101001000011100011101100010001100000010"
+    );
+}
+
+#[test]
+fn pattern_fp_bytes() {
+    let smiles = "OCC=CCO";
+    let options = r#"{
+            "nBits": 64
+        }"#;
+    let mol = Molecule::new(smiles).unwrap();
+    let fps: Vec<i8> = mol.get_pattern_fp_as_bytes(options);
+    println!("Pattern fingerprint bytes: {:?}", fps);
+    // Should have 8 bytes for 64 bits
+    assert_eq!(fps.len(), 8);
+    // Should not be all zeros for this molecule
+    assert!(fps.iter().any(|&x| x != 0));
+    let expected_fps: Vec<i8> = vec![-56, -82, 50, 74, 56, 110, -60, 64];
+    assert_eq!(fps, expected_fps);
+}
+
+#[test]
 fn generate3d() {
     let orig_smiles = "CC";
     let mut pkl_mol = Molecule::new(orig_smiles).unwrap();
