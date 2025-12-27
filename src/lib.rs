@@ -140,6 +140,7 @@ use bindings::{add_hs, remove_all_hs, set_3d_coords};
 use bindings::{
     canonical_tautomer, charge_parent, cleanup, fragment_parent, neutralize, normalize, reionize,
 };
+use bindings::{clear_prop, get_prop, get_prop_list, has_prop, keep_props, set_prop};
 use bindings::{
     get_cxsmiles, get_descriptors, get_inchi, get_inchikey_for_inchi, get_json, get_mol,
     get_molblock, get_qmol, get_smarts, get_smiles, get_substruct_match, get_substruct_matches,
@@ -657,6 +658,112 @@ impl Molecule {
             libc::free(n_bytes as *mut c_void);
             free_ptr(fp_cchar);
             res
+        }
+    }
+
+    /// Check if molecule has a property with the given key
+    pub fn has_prop(&self, key: &str) -> bool {
+        let key_cstr = CString::new(key).unwrap();
+        unsafe {
+            let result = has_prop(self.pkl_mol, *self.pkl_size, key_cstr.as_ptr());
+            result != 0
+        }
+    }
+
+    /// Get a list of property names
+    ///
+    /// # Arguments
+    /// * `include_private` - Include private properties
+    /// * `include_computed` - Include computed properties
+    pub fn get_prop_list(&self, include_private: bool, include_computed: bool) -> Vec<String> {
+        unsafe {
+            let prop_list_ptr = get_prop_list(
+                self.pkl_mol,
+                *self.pkl_size,
+                if include_private { 1 } else { 0 },
+                if include_computed { 1 } else { 0 },
+            );
+
+            if prop_list_ptr.is_null() {
+                return Vec::new();
+            }
+
+            let mut props = Vec::new();
+            let mut i = 0;
+            while !(*prop_list_ptr.add(i)).is_null() {
+                let prop_cstr = CStr::from_ptr(*prop_list_ptr.add(i));
+                props.push(prop_cstr.to_string_lossy().into_owned());
+                libc::free(*prop_list_ptr.add(i) as *mut c_void);
+                i += 1;
+            }
+            libc::free(prop_list_ptr as *mut c_void);
+            props
+        }
+    }
+
+    /// Set a property on the molecule
+    ///
+    /// # Arguments
+    /// * `key` - Property key
+    /// * `val` - Property value
+    /// * `computed` - Whether this is a computed property
+    pub fn set_prop(&mut self, key: &str, val: &str, computed: bool) {
+        let key_cstr = CString::new(key).unwrap();
+        let val_cstr = CString::new(val).unwrap();
+        unsafe {
+            set_prop(
+                &mut self.pkl_mol as *mut _,
+                self.pkl_size,
+                key_cstr.as_ptr(),
+                val_cstr.as_ptr(),
+                if computed { 1 } else { 0 },
+            );
+        }
+    }
+
+    /// Get a property value by key
+    ///
+    /// Returns `None` if the property doesn't exist
+    pub fn get_prop(&self, key: &str) -> Option<String> {
+        let key_cstr = CString::new(key).unwrap();
+        unsafe {
+            let prop_ptr = get_prop(self.pkl_mol, *self.pkl_size, key_cstr.as_ptr());
+            if prop_ptr.is_null() {
+                return None;
+            }
+            let prop_str = CStr::from_ptr(prop_ptr).to_string_lossy().into_owned();
+            free_ptr(prop_ptr);
+            Some(prop_str)
+        }
+    }
+
+    /// Clear a property from the molecule
+    ///
+    /// Returns `true` if the property existed and was cleared, `false` otherwise
+    pub fn clear_prop(&mut self, key: &str) -> bool {
+        let key_cstr = CString::new(key).unwrap();
+        unsafe {
+            let result = clear_prop(
+                &mut self.pkl_mol as *mut _,
+                self.pkl_size,
+                key_cstr.as_ptr(),
+            );
+            result != 0
+        }
+    }
+
+    /// Keep only specified properties on the molecule
+    ///
+    /// # Arguments
+    /// * `details_json` - JSON string with property filtering options
+    pub fn keep_props(&mut self, details_json: &str) {
+        let details_cstr = CString::new(details_json).unwrap();
+        unsafe {
+            keep_props(
+                &mut self.pkl_mol as *mut _,
+                self.pkl_size,
+                details_cstr.as_ptr(),
+            );
         }
     }
 

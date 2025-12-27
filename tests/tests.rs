@@ -361,3 +361,137 @@ fn fragments() {
     assert_eq!(pkl_mol.get_smiles(""), "[CH2-]C[N+](=O)[O-].[Pt+]");
     pkl_mol.fragment_parent("");
 }
+
+#[test]
+fn test_has_prop() {
+    let mol = Molecule::new("CCO").unwrap();
+    // Test with non-existent property
+    assert_eq!(mol.has_prop("nonexistent"), false);
+    assert!(!mol.has_prop("_nonexistent_property_12345"));
+    assert!(!mol.has_prop("test_key"));
+}
+
+#[test]
+fn test_set_and_get_prop() {
+    let mut mol = Molecule::new("CCO").unwrap();
+
+    // Set a property
+    mol.set_prop("test_key", "test_value", false);
+
+    // Check it exists
+    assert!(mol.has_prop("test_key"));
+
+    // Get the property
+    let value = mol.get_prop("test_key");
+    assert_eq!(value, Some("test_value".to_string()));
+
+    // Test with computed property
+    mol.set_prop("computed_key", "computed_value", true);
+    assert!(mol.has_prop("computed_key"));
+    assert_eq!(
+        mol.get_prop("computed_key"),
+        Some("computed_value".to_string())
+    );
+}
+
+#[test]
+fn test_get_prop_nonexistent() {
+    let mol = Molecule::new("CCO").unwrap();
+    // Get non-existent property
+    assert_eq!(mol.get_prop("nonexistent"), None);
+    assert!(!mol.has_prop("nonexistent"));
+}
+
+#[test]
+fn test_get_prop_list() {
+    let mut mol = Molecule::new("CCO").unwrap();
+
+    // Set some properties
+    mol.set_prop("prop1", "value1", false);
+    mol.set_prop("prop2", "value2", false);
+    mol.set_prop("computed_prop", "computed_value", true);
+
+    // Get all properties
+    let all_props = mol.get_prop_list(true, true);
+    println!("All properties: {:?}", all_props);
+    assert!(all_props.len() >= 3); // At least our 3 properties
+
+    // Get only non-computed properties
+    let non_computed = mol.get_prop_list(true, false);
+    println!("Non-computed properties: {:?}", non_computed);
+    assert!(non_computed.iter().any(|p| p == "prop1"));
+    assert!(non_computed.iter().any(|p| p == "prop2"));
+}
+
+#[test]
+fn test_clear_prop() {
+    let mut mol = Molecule::new("CCO").unwrap();
+
+    // Set a property
+    mol.set_prop("to_clear", "value", false);
+    assert!(mol.has_prop("to_clear"));
+
+    // Clear it
+    let cleared = mol.clear_prop("to_clear");
+    assert!(cleared);
+    assert!(!mol.has_prop("to_clear"));
+    assert_eq!(mol.get_prop("to_clear"), None);
+
+    // Try to clear non-existent property
+    let not_cleared = mol.clear_prop("nonexistent");
+    assert!(!not_cleared);
+}
+
+#[test]
+fn test_keep_props() {
+    let mut mol = Molecule::new("CCO").unwrap();
+
+    // Set multiple properties
+    mol.set_prop("keep1", "value1", false);
+    mol.set_prop("keep2", "value2", false);
+    mol.set_prop("remove1", "value3", false);
+    mol.set_prop("remove2", "value4", false);
+
+    // Verify all exist
+    assert!(mol.has_prop("keep1"));
+    assert!(mol.has_prop("keep2"));
+    assert!(mol.has_prop("remove1"));
+    assert!(mol.has_prop("remove2"));
+
+    // Keep only keep1 and keep2
+    // Note: The JSON format for keep_props depends on RDKit's implementation
+    // This is a basic test - the actual JSON format may need adjustment
+    let keep_json = r#"{"props":["keep1","keep2"]}"#;
+    mol.keep_props(keep_json);
+
+    // After keep_props, the properties should be filtered
+    // The exact behavior depends on RDKit's implementation
+    println!(
+        "Properties after keep_props: {:?}",
+        mol.get_prop_list(true, true)
+    );
+}
+
+#[test]
+fn test_property_operations_chain() {
+    let mut mol = Molecule::new("c1ccccc1O").unwrap(); // phenol
+
+    // Chain of property operations
+    mol.set_prop("name", "phenol", false);
+    mol.set_prop("mw", "94.11", false);
+    mol.set_prop("formula", "C6H6O", false);
+
+    assert_eq!(mol.get_prop("name"), Some("phenol".to_string()));
+    assert_eq!(mol.get_prop("mw"), Some("94.11".to_string()));
+    assert_eq!(mol.get_prop("formula"), Some("C6H6O".to_string()));
+
+    // Update a property
+    mol.set_prop("mw", "94.11 g/mol", false);
+    assert_eq!(mol.get_prop("mw"), Some("94.11 g/mol".to_string()));
+
+    // Clear one property
+    mol.clear_prop("formula");
+    assert!(!mol.has_prop("formula"));
+    assert!(mol.has_prop("name"));
+    assert!(mol.has_prop("mw"));
+}

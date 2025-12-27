@@ -246,3 +246,48 @@ unsafe extern "C" {
 unsafe extern "C" {
     pub fn disable_logging() -> ::std::os::raw::c_short;
 }
+unsafe extern "C" {
+    pub fn has_prop(
+        mol_pkl: *const ::std::os::raw::c_char,
+        mol_pkl_sz: usize,
+        key: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_short;
+}
+unsafe extern "C" {
+    pub fn get_prop_list(
+        mol_pkl: *const ::std::os::raw::c_char,
+        mol_pkl_sz: usize,
+        includePrivate: ::std::os::raw::c_short,
+        includeComputed: ::std::os::raw::c_short,
+    ) -> *mut *mut ::std::os::raw::c_char;
+}
+unsafe extern "C" {
+    pub fn set_prop(
+        mol_pkl: *mut *mut ::std::os::raw::c_char,
+        mol_pkl_sz: *mut usize,
+        key: *const ::std::os::raw::c_char,
+        val: *const ::std::os::raw::c_char,
+        computed: ::std::os::raw::c_short,
+    );
+}
+unsafe extern "C" {
+    pub fn get_prop(
+        mol_pkl: *const ::std::os::raw::c_char,
+        mol_pkl_sz: usize,
+        key: *const ::std::os::raw::c_char,
+    ) -> *mut ::std::os::raw::c_char;
+}
+unsafe extern "C" {
+    pub fn clear_prop(
+        mol_pkl: *mut *mut ::std::os::raw::c_char,
+        mol_pkl_sz: *mut usize,
+        key: *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_short;
+}
+unsafe extern "C" {
+    pub fn keep_props(
+        mol_pkl: *mut *mut ::std::os::raw::c_char,
+        mol_pkl_sz: *mut usize,
+        details_json: *const ::std::os::raw::c_char,
+    );
+}
