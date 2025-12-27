@@ -1,4 +1,4 @@
-name: RDKit CFFI 2024.09
+name: RDKit CFFI 2025.09
 
 on:
   workflow_dispatch:
@@ -28,7 +28,7 @@ jobs:
 
       - name: Clone main RDKit repo
         run: |
-          git clone https://github.com/rdkit/rdkit.git --branch Release_2024_09 --single-branch rdkit --depth=1
+          git clone https://github.com/rdkit/rdkit.git --branch Release_2025_09 --single-branch rdkit --depth=1
 
       - name: Configure build (Run CMake)
         run: |
