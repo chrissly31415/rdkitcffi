@@ -115,19 +115,28 @@ jobs:
           # Copy the library file
           cp $FNAME $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64/
 
-          # Bundle freetype dependency
+          # Bundle dependencies
           echo "=== Bundling dependencies ==="
           cp /opt/homebrew/opt/freetype/lib/libfreetype.6.dylib $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64/
+          cp /opt/homebrew/opt/libpng/lib/libpng16.16.dylib $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64/
 
           # Fix library paths to use @loader_path (relative to library location)
           cd $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64
+
+          # Fix RDKit library to find freetype
           install_name_tool -change /opt/homebrew/opt/freetype/lib/libfreetype.6.dylib @loader_path/libfreetype.6.dylib $FNAME
+
+          # Fix freetype library to find libpng
+          install_name_tool -change /opt/homebrew/opt/libpng/lib/libpng16.16.dylib @loader_path/libpng16.16.dylib libfreetype.6.dylib
 
           echo "=== Artifact contents ==="
           ls -lh $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64
           echo ""
-          echo "=== Library dependencies after fix ==="
+          echo "=== RDKit library dependencies ==="
           otool -L $FNAME
+          echo ""
+          echo "=== Freetype library dependencies ==="
+          otool -L libfreetype.6.dylib
 
       - name: Create tarball
         run: |
