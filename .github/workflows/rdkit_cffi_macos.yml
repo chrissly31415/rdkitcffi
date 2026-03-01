@@ -108,8 +108,8 @@ jobs:
           mkdir -p $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64
           cd rdkit/build/lib
 
-          # Find the versioned dylib
-          FNAME=$(ls librdkitcffi.1.*.dylib)
+          # Find the versioned dylib (e.g., librdkitcffi.2024.09.6.dylib)
+          FNAME=$(ls librdkitcffi.*.*.*.dylib 2>/dev/null || ls librdkitcffi.20*.dylib)
           echo "Found library: $FNAME"
 
           # Get build number from git

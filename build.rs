@@ -143,8 +143,13 @@ fn download_rdkit_artifact() -> Option<String> {
                             .ok()?;
                         break;
                     }
-                    // macOS .dylib files
-                    else if target_os == "macos" && name.starts_with("librdkitcffi.1.") && name.ends_with(".dylib") {
+                    // macOS .dylib files (e.g., librdkitcffi.2024.09.6.dylib)
+                    else if target_os == "macos"
+                        && name.starts_with("librdkitcffi.")
+                        && name.ends_with(".dylib")
+                        && name != "librdkitcffi.dylib"
+                        && name != "librdkitcffi.1.dylib"
+                    {
                         Command::new("ln")
                             .args(["-sf", name, &format!("{}/librdkitcffi.dylib", lib_dir)])
                             .status()
@@ -434,7 +439,10 @@ fn main() {
                 shared_lib_dir, fallback_path
             );
         } else {
-            println!("cargo:rustc-env=DYLD_FALLBACK_LIBRARY_PATH={}", shared_lib_dir);
+            println!(
+                "cargo:rustc-env=DYLD_FALLBACK_LIBRARY_PATH={}",
+                shared_lib_dir
+            );
         }
 
         println!("cargo:warning=Using dynamic linking on macOS with dylib");
