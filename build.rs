@@ -20,6 +20,8 @@ fn download_rdkit_artifact() -> Option<String> {
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_else(|_| {
         if cfg!(target_os = "windows") {
             "windows".to_string()
+        } else if cfg!(target_os = "macos") {
+            "macos".to_string()
         } else {
             "linux".to_string()
         }
@@ -30,6 +32,12 @@ fn download_rdkit_artifact() -> Option<String> {
             format!("{}/rdkitcffi_windows/windows-64", manifest_dir),
             "rdkitcffi_windows_vs.zip".to_string(),
             "rdkit-windows-vs-latest".to_string(),
+        )
+    } else if target_os == "macos" {
+        (
+            format!("{}/rdkitcffi_macos/macos-64", manifest_dir),
+            "rdkitcffi_macos.tar.gz".to_string(),
+            "rdkit-macos-latest".to_string(),
         )
     } else {
         (
@@ -75,6 +83,13 @@ fn download_rdkit_artifact() -> Option<String> {
                 false
             }
         }
+    } else if target_os == "macos" {
+        // Use curl for macOS
+        Command::new("curl")
+            .args(["-L", "-o", &artifact_name, &download_url])
+            .status()
+            .ok()?
+            .success()
     } else {
         // Use wget for Linux
         Command::new("wget")
@@ -110,19 +125,32 @@ fn download_rdkit_artifact() -> Option<String> {
         // Clean up downloaded artifact
         std::fs::remove_file(&artifact_name).ok()?;
 
-        // Create symlinks (only for Linux)
+        // Create symlinks (for Linux and macOS)
         if target_os != "windows" {
             let lib_files = std::fs::read_dir(&lib_dir).ok()?;
             for entry in lib_files.flatten() {
                 let filename = entry.file_name();
                 if let Some(name) = filename.to_str() {
-                    if name.starts_with("librdkitcffi.so.1.") {
+                    // Linux .so files
+                    if target_os == "linux" && name.starts_with("librdkitcffi.so.1.") {
                         Command::new("ln")
                             .args(["-sf", name, &format!("{}/librdkitcffi.so", lib_dir)])
                             .status()
                             .ok()?;
                         Command::new("ln")
                             .args(["-sf", name, &format!("{}/librdkitcffi.so.1", lib_dir)])
+                            .status()
+                            .ok()?;
+                        break;
+                    }
+                    // macOS .dylib files
+                    else if target_os == "macos" && name.starts_with("librdkitcffi.1.") && name.ends_with(".dylib") {
+                        Command::new("ln")
+                            .args(["-sf", name, &format!("{}/librdkitcffi.dylib", lib_dir)])
+                            .status()
+                            .ok()?;
+                        Command::new("ln")
+                            .args(["-sf", name, &format!("{}/librdkitcffi.1.dylib", lib_dir)])
                             .status()
                             .ok()?;
                         break;
@@ -137,17 +165,19 @@ fn download_rdkit_artifact() -> Option<String> {
 }
 
 fn build_rdkit() -> Option<String> {
-    // Don't build on Windows, only download
+    // Don't build on Windows or macOS, only download
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_else(|_| {
         if cfg!(target_os = "windows") {
             "windows".to_string()
+        } else if cfg!(target_os = "macos") {
+            "macos".to_string()
         } else {
             "linux".to_string()
         }
     });
 
-    if target_os == "windows" {
-        println!("cargo:warning=Local RDKit compilation not supported on Windows. Please ensure the Windows artifact is available for download.");
+    if target_os == "windows" || target_os == "macos" {
+        println!("cargo:warning=Local RDKit compilation not supported on {}. Please ensure the artifact is available for download.", target_os);
         return None;
     }
 
@@ -253,12 +283,14 @@ fn get_rdkit_lib_path() -> String {
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_else(|_| {
         if cfg!(target_os = "windows") {
             "windows".to_string()
+        } else if cfg!(target_os = "macos") {
+            "macos".to_string()
         } else {
             "linux".to_string()
         }
     });
 
-    if target_os != "windows" {
+    if target_os == "linux" {
         println!("cargo:warning=Download failed, attempting to build RDKit...");
         if let Some(path) = build_rdkit() {
             println!("cargo:warning=Successfully built RDKit");
@@ -269,6 +301,8 @@ fn get_rdkit_lib_path() -> String {
     // If both fail, panic with helpful message
     if target_os == "windows" {
         panic!("Failed to download Windows RDKit artifact. Please ensure the Windows artifact is available in the GitHub release.");
+    } else if target_os == "macos" {
+        panic!("Failed to download macOS RDKit artifact. Please ensure the macOS artifact is available in the GitHub release.");
     } else {
         panic!("Failed to either download or build RDKit. Please ensure you have internet connection or the required dependencies installed.");
     }
@@ -285,6 +319,8 @@ fn main() {
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_else(|_| {
         if cfg!(target_os = "windows") {
             "windows".to_string()
+        } else if cfg!(target_os = "macos") {
+            "macos".to_string()
         } else {
             "linux".to_string()
         }
@@ -383,6 +419,25 @@ fn main() {
                 println!("cargo:warning=Copied DLL to: {}", dll_target.display());
             }
         }
+    } else if target_os == "macos" {
+        // macOS dynamic linking with .dylib
+        println!("cargo:rustc-link-lib=dylib=rdkitcffi");
+
+        // Set DYLD_LIBRARY_PATH for runtime library discovery
+        println!("cargo:rustc-env=DYLD_LIBRARY_PATH={}", shared_lib_dir);
+
+        // Also set DYLD_FALLBACK_LIBRARY_PATH as backup
+        let fallback_path = env::var("DYLD_FALLBACK_LIBRARY_PATH").unwrap_or_default();
+        if !fallback_path.is_empty() {
+            println!(
+                "cargo:rustc-env=DYLD_FALLBACK_LIBRARY_PATH={}:{}",
+                shared_lib_dir, fallback_path
+            );
+        } else {
+            println!("cargo:rustc-env=DYLD_FALLBACK_LIBRARY_PATH={}", shared_lib_dir);
+        }
+
+        println!("cargo:warning=Using dynamic linking on macOS with dylib");
     } else {
         println!("cargo:rustc-link-lib=dylib=rdkitcffi");
         // Set LD_LIBRARY_PATH for Linux
@@ -448,6 +503,32 @@ fn main() {
         // For Windows, we don't need additional Boost includes since the DLL is pre-built
         // and contains all the necessary symbols
         println!("cargo:warning=Using pre-built Windows DLL - no additional includes needed");
+    } else if target_os == "macos" {
+        // For macOS, try Homebrew Boost locations
+        let arch = std::env::consts::ARCH;
+        let possible_boost_paths = if arch == "aarch64" {
+            // Apple Silicon: Homebrew at /opt/homebrew
+            vec![
+                "/opt/homebrew/include",
+                "/opt/homebrew/opt/boost/include",
+                "/usr/local/include",
+            ]
+        } else {
+            // Intel: Homebrew at /usr/local
+            vec![
+                "/usr/local/include",
+                "/usr/local/opt/boost/include",
+                "/opt/homebrew/include",
+            ]
+        };
+
+        for path in possible_boost_paths {
+            if std::path::Path::new(path).exists() {
+                println!("cargo:warning=Found Boost headers at: {}", path);
+                builder = builder.clang_arg(format!("-I{}", path));
+                break;
+            }
+        }
     } else {
         // For Linux, add Boost include path if available
         let possible_boost_paths = vec!["/usr/include", "/usr/local/include", "/opt/boost/include"];

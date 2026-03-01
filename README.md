@@ -1,6 +1,7 @@
 [![Rust](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rust.yml/badge.svg)](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rust.yml)
 [![CFFI Linux Build](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rdkit_cffi.yml/badge.svg)](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rdkit_cffi.yml)
 [![CFFI Windows Build](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rdkit_cffi_win_vs.yml/badge.svg)](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rdkit_cffi_win_vs.yml)
+[![CFFI macOS Build](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rdkit_cffi_macos.yml/badge.svg)](https://github.com/chrissly31415/rdkitcffi/actions/workflows/rdkit_cffi_macos.yml)
 
 # rdkitcffi
 
@@ -118,28 +119,43 @@ use rdkitcffi::{Molecule,read_sdfile};
  ```
 
 ## Installation
-Currently linux and windows are supported.   
 
-Download the repo:  
+Linux, Windows, and macOS (Apple Silicon) are supported.
+
+Download the repo:
 
 ```
-git clone https://github.com/chrissly31415/rdkitcffi.git  
+git clone https://github.com/chrissly31415/rdkitcffi.git
 ```
 
 If you have a rust/cargo installation, just run
 
 ```
 cd rdkitcffi
-cargo build  
-cargo test --lib  
+cargo build
+cargo test --lib
 ```
 
-### Dynamic libraries
-After installation you may want to update your LD_LIBRARY_PATH in order to run binaries without cargo, e.g.:   
+### Platform-Specific Notes
 
+#### macOS
+Supports Apple Silicon (M1/M2/M3/M4) natively. Intel Macs can use the ARM binary via Rosetta 2 emulation.
+
+The build automatically downloads pre-built RDKit libraries from GitHub releases.
+
+After installation, you may want to update your DYLD_LIBRARY_PATH for running binaries without cargo:
+```bash
+export DYLD_LIBRARY_PATH=/path/to/rdkitcffi/rdkitcffi_macos/macos-64/:$DYLD_LIBRARY_PATH
 ```
+
+#### Linux
+After installation you may want to update your LD_LIBRARY_PATH in order to run binaries without cargo, e.g.:
+```bash
 export LD_LIBRARY_PATH=/home/username/rdkitcffi/lib/rdkitcffi_linux/linux-64/:$LD_LIBRARY_PATH
 ```
+
+#### Windows
+Windows support uses pre-built DLLs which are automatically copied to the appropriate target directories during build.
 
 ## Using it in your project
 

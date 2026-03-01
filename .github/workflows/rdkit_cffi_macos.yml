@@ -1,0 +1,153 @@
+name: RDKit CFFI macOS 2024.09 (ARM64)
+
+on:
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with debug logging'
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches:
+      - master
+      - main
+
+jobs:
+  build-macos-arm64:
+    runs-on: macos-latest  # ARM64 runner
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Display system info
+        run: |
+          uname -a
+          sysctl -n machdep.cpu.brand_string || echo "CPU info not available"
+          echo "Architecture: $(uname -m)"
+
+      - name: Install dependencies via Homebrew
+        run: |
+          brew update
+          brew install cmake boost eigen wget
+
+      - name: Verify Boost installation
+        run: |
+          echo "Boost include path:"
+          if [ -d "/opt/homebrew/include/boost" ]; then
+            ls -la /opt/homebrew/include/boost | head -10
+            echo "BOOST_ROOT=/opt/homebrew"
+          else
+            echo "Warning: Boost headers not found at /opt/homebrew"
+          fi
+
+      - name: Clone RDKit repository
+        run: |
+          git clone https://github.com/rdkit/rdkit.git \
+            --branch Release_2024_09 \
+            --single-branch \
+            --depth=1 \
+            rdkit
+
+      - name: Configure CMake
+        run: |
+          cd rdkit && mkdir build && cd build
+
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBOOST_ROOT=/opt/homebrew \
+            -DRDK_BUILD_CPP_TESTS=OFF \
+            -DRDK_BUILD_PYTHON_WRAPPERS=OFF \
+            -DRDK_BUILD_COORDGEN_SUPPORT=ON \
+            -DRDK_BUILD_MAEPARSER_SUPPORT=ON \
+            -DRDK_OPTIMIZE_POPCNT=ON \
+            -DRDK_BUILD_INCHI_SUPPORT=ON \
+            -DRDK_BUILD_THREADSAFE_SSS=ON \
+            -DRDK_TEST_MULTITHREADED=ON \
+            -DRDK_BUILD_CFFI_LIB=ON \
+            -DRDK_USE_BOOST_SERIALIZATION=OFF \
+            -DRDK_USE_BOOST_IOSTREAMS=OFF \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DRDK_INSTALL_COMIC_FONTS=OFF \
+            -DCMAKE_OSX_ARCHITECTURES=arm64
+
+      - name: Build RDKit CFFI
+        run: |
+          cd rdkit/build
+          make VERBOSE=1 -j 3 cffi_test
+
+          if [ $? -ne 0 ]; then
+            echo "Build failed. Checking logs..."
+            if [ -f CMakeFiles/CMakeError.log ]; then
+              echo "=== CMake Error Log ==="
+              tail -n 100 CMakeFiles/CMakeError.log
+            fi
+            exit 1
+          fi
+
+      - name: Run CFFI tests
+        run: |
+          cd rdkit
+          export RDBASE=$PWD
+          export DYLD_LIBRARY_PATH=${RDBASE}/lib:${DYLD_LIBRARY_PATH}
+          echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
+          cd build
+          ./Code/MinimalLib/cffi_test
+
+      - name: Display library info
+        run: |
+          cd rdkit/build/lib
+          echo "=== Built libraries ==="
+          ls -lh librdkitcffi.*
+          echo ""
+          echo "=== Library dependencies ==="
+          otool -L librdkitcffi.*.dylib | head -20
+
+      - name: Create artifacts
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64
+          cd rdkit/build/lib
+
+          # Find the versioned dylib
+          FNAME=$(ls librdkitcffi.1.*.dylib)
+          echo "Found library: $FNAME"
+
+          # Get build number from git
+          BUILD=$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
+          echo "Build number: $BUILD"
+
+          # Copy with build number in filename
+          cp $FNAME $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64/${FNAME}.$BUILD
+
+          echo "=== Artifact contents ==="
+          ls -lh $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64
+
+      - name: Create tarball
+        run: |
+          cd $GITHUB_WORKSPACE
+          tar czf rdkitcffi_macos.tar.gz rdkitcffi_macos/
+          ls -lh rdkitcffi_macos.tar.gz
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rdkitcffi-macos-arm64
+          path: rdkitcffi_macos.tar.gz
+          retention-days: 7
+
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: rdkitcffi_macos.tar.gz
+          tag_name: rdkit-macos-latest
+          name: Latest RDKit CFFI macOS Build (ARM64)
+          body: |
+            Automated RDKit CFFI library build for macOS Apple Silicon (arm64)
+
+            Built with RDKit Release_2024_09
+
+            Note: Intel Macs can use this via Rosetta 2 emulation
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

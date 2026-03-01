@@ -27,4 +27,6 @@ test-env-log = "0.2"
 
 [package.metadata.cargo-test-env]
 LD_LIBRARY_PATH = { value = "./rdkitcffi_linux/linux-64", relative = true }
+DYLD_LIBRARY_PATH = { value = "./rdkitcffi_macos/macos-64", relative = true }
+DYLD_FALLBACK_LIBRARY_PATH = { value = "./rdkitcffi_macos/macos-64", relative = true }
 
