@@ -129,6 +129,11 @@ jobs:
           # Fix freetype library to find libpng
           install_name_tool -change /opt/homebrew/opt/libpng/lib/libpng16.16.dylib @loader_path/libpng16.16.dylib libfreetype.6.dylib
 
+          # Re-sign libraries after modification (ad-hoc signing)
+          codesign --force --sign - $FNAME
+          codesign --force --sign - libfreetype.6.dylib
+          codesign --force --sign - libpng16.16.dylib
+
           echo "=== Artifact contents ==="
           ls -lh $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64
           echo ""
