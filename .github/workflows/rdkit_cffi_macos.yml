@@ -112,11 +112,22 @@ jobs:
           FNAME=$(ls librdkitcffi.*.*.*.dylib 2>/dev/null || ls librdkitcffi.20*.dylib)
           echo "Found library: $FNAME"
 
-          # Copy the library file as-is (build.rs will create symlinks)
+          # Copy the library file
           cp $FNAME $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64/
+
+          # Bundle freetype dependency
+          echo "=== Bundling dependencies ==="
+          cp /opt/homebrew/opt/freetype/lib/libfreetype.6.dylib $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64/
+
+          # Fix library paths to use @loader_path (relative to library location)
+          cd $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64
+          install_name_tool -change /opt/homebrew/opt/freetype/lib/libfreetype.6.dylib @loader_path/libfreetype.6.dylib $FNAME
 
           echo "=== Artifact contents ==="
           ls -lh $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64
+          echo ""
+          echo "=== Library dependencies after fix ==="
+          otool -L $FNAME
 
       - name: Create tarball
         run: |
