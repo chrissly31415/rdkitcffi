@@ -112,12 +112,8 @@ jobs:
           FNAME=$(ls librdkitcffi.*.*.*.dylib 2>/dev/null || ls librdkitcffi.20*.dylib)
           echo "Found library: $FNAME"
 
-          # Get build number from git
-          BUILD=$(cd ../.. && git describe --tags --long HEAD | cut -d '-' -f 2)
-          echo "Build number: $BUILD"
-
-          # Copy with build number in filename
-          cp $FNAME $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64/${FNAME}.$BUILD
+          # Copy the library file as-is (build.rs will create symlinks)
+          cp $FNAME $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64/
 
           echo "=== Artifact contents ==="
           ls -lh $GITHUB_WORKSPACE/rdkitcffi_macos/macos-64
