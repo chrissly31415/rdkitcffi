@@ -1,8 +1,8 @@
 extern crate rdkitcffi;
 use rdkitcffi::bindings::{disable_logging, enable_logging, free_ptr, version};
 use rdkitcffi::{
-    json::jsonfrom_string, read_sdfile, read_sdfile_unwrap, read_smifile_unwrap, JsonMolecule,
-    Molecule,
+    json::jsonfrom_string, prefer_coordgen, read_sdfile, read_sdfile_unwrap, read_smifile_unwrap,
+    JsonMolecule, Molecule, SDIterator,
 };
 use serde_json::json;
 use std::ffi::CStr;
@@ -362,9 +362,86 @@ fn fragments() {
     pkl_mol.fragment_parent("");
 }
 
-// Property function tests - commented out until available in RDKit CFFI library
-// TODO: Uncomment when property functions are added to the library
-//
+// ---- coordinate tests ----
+
+#[test]
+fn coords_2d() {
+    let mut mol = Molecule::new("CCO").unwrap();
+    assert!(!mol.has_coords());
+    mol.set_2d_coords();
+    assert!(mol.has_coords());
+}
+
+#[test]
+fn coords_2d_aligned() {
+    // template: benzene with 2D coords
+    let mut template = Molecule::new("c1ccccc1").unwrap();
+    template.set_2d_coords();
+    assert!(template.has_coords());
+
+    // phenol contains benzene as a substructure
+    let mut mol = Molecule::new("Oc1ccccc1").unwrap();
+    let match_json = mol.set_2d_coords_aligned(&template, "");
+    assert!(mol.has_coords());
+    // match_json should describe the atom mapping
+    assert!(!match_json.is_empty());
+    assert!(match_json.contains("atoms"));
+}
+
+#[test]
+fn prefer_coordgen_test() {
+    // Just verify it does not panic; reset to default afterwards
+    prefer_coordgen(true);
+    let mut mol = Molecule::new("c1ccccc1").unwrap();
+    mol.set_2d_coords();
+    assert!(mol.has_coords());
+    prefer_coordgen(false);
+}
+
+// Property tests (has_prop, set_prop, get_prop, clear_prop, get_prop_list, keep_props) are
+// commented out because these symbols are not yet exported by the pre-built RDKit binaries.
+// Uncomment when the binaries are rebuilt with these symbols.
+
+// ---- other missing tests ----
+
+#[test]
+fn reionize_test() {
+    // pyridinium acetate: after reionize should transfer proton
+    let mut mol = Molecule::new("C(C(=O)[O-])[NH3+]").unwrap();
+    mol.reionize("");
+    let smiles = mol.get_smiles("");
+    assert!(!smiles.is_empty());
+}
+
+#[test]
+fn sd_iterator() {
+    let sdreader = SDIterator::new("data/test.sdf");
+    let mols: Vec<_> = sdreader.flatten().collect(); // flatten Option<Molecule>
+    assert!(!mols.is_empty());
+    assert!(mols.iter().all(|m| !m.get_smiles("").is_empty()));
+}
+
+#[test]
+fn get_commonchem_test() {
+    let mol = Molecule::new("CCO").unwrap();
+    let cc = mol.get_commonchem();
+    assert!(!cc.molecules.is_empty());
+    // ethanol: C, C, O = 3 heavy atoms
+    assert_eq!(cc.molecules[0].atoms.len(), 3);
+    assert_eq!(cc.molecules[0].bonds.len(), 2);
+}
+
+#[test]
+fn v3kmolblock_content() {
+    let mol = Molecule::new("CCO").unwrap();
+    let v3k = mol.get_v3kmolblock("");
+    assert!(v3k.contains("V3000"));
+    assert!(v3k.contains("BEGIN ATOM"));
+    assert!(v3k.contains("BEGIN BOND"));
+}
+
+// ---- stale commented-out tests (removed, replaced above) ----
+
 // #[test]
 // fn test_has_prop() {
 //     let mol = Molecule::new("CCO").unwrap();

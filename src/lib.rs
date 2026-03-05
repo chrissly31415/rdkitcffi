@@ -129,19 +129,19 @@ use libc;
 use std::ffi::{CStr, CString};
 use std::fs::read_to_string;
 use std::mem;
-use std::os::raw::{c_char, c_void};
+use std::os::raw::{c_char, c_short, c_void};
 
 pub mod examples;
 
 pub mod bindings;
 
 use bindings::free_ptr;
-use bindings::{add_hs, remove_all_hs, set_3d_coords};
+use bindings::{add_hs, has_coords, remove_all_hs, set_2d_coords, set_2d_coords_aligned, set_3d_coords};
 use bindings::{
     canonical_tautomer, charge_parent, cleanup, fragment_parent, neutralize, normalize, reionize,
 };
-// Property functions - commented out until available in RDKit CFFI library
-// TODO: Uncomment when property functions are added to the library
+// Property functions not yet exported by the pre-built RDKit libraries.
+// Uncomment when the binaries are rebuilt with these symbols.
 // use bindings::{clear_prop, get_prop, get_prop_list, has_prop, keep_props, set_prop};
 use bindings::{
     get_cxsmiles, get_descriptors, get_inchi, get_inchikey_for_inchi, get_json, get_mol,
@@ -152,16 +152,6 @@ use bindings::{
     get_morgan_fp, get_morgan_fp_as_bytes, get_pattern_fp, get_pattern_fp_as_bytes, get_rdkit_fp,
     get_rdkit_fp_as_bytes,
 };
-// Property functions - commented out until available in RDKit CFFI library
-// TODO: Uncomment when property functions are added to the library
-// use bindings::{
-//     clear_prop, get_prop, get_prop_list, has_prop, keep_props, set_prop,
-// };
-// Property functions - commented out until available in RDKit CFFI library
-// TODO: Uncomment when property functions are added to the library
-// use bindings::{
-//     clear_prop, get_prop, get_prop_list, has_prop, keep_props, set_prop,
-// };
 
 pub mod json;
 // Re-export commonly used types from json module
@@ -482,9 +472,15 @@ impl Molecule {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
             let a: *mut c_char = get_inchi(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
+            if a.is_null() {
+                return String::new();
+            }
             let b: *mut c_char = get_inchikey_for_inchi(a);
-            let inchikey: String = CStr::from_ptr(b).to_string_lossy().into_owned();
             free_ptr(a);
+            if b.is_null() {
+                return String::new();
+            }
+            let inchikey = CStr::from_ptr(b).to_string_lossy().into_owned();
             free_ptr(b);
             inchikey
         }
@@ -504,7 +500,42 @@ impl Molecule {
         }
     }
 
-    /// creates 3D coordinates
+    /// Returns true if the molecule already has coordinates
+    pub fn has_coords(&self) -> bool {
+        unsafe { has_coords(self.pkl_mol, *self.pkl_size) != 0 }
+    }
+
+    /// Creates 2D coordinates
+    pub fn set_2d_coords(&mut self) {
+        unsafe {
+            set_2d_coords(&mut self.pkl_mol as *mut _, self.pkl_size);
+        }
+    }
+
+    /// Creates 2D coordinates aligned to a template molecule.
+    /// Returns the atom-mapping JSON string, or empty string on failure.
+    pub fn set_2d_coords_aligned(&mut self, template: &Molecule, details_json: &str) -> String {
+        let details_cstr = CString::new(details_json).unwrap();
+        let mut match_ptr: *mut c_char = std::ptr::null_mut();
+        unsafe {
+            set_2d_coords_aligned(
+                &mut self.pkl_mol as *mut _,
+                self.pkl_size,
+                template.pkl_mol,
+                *template.pkl_size,
+                details_cstr.as_ptr(),
+                &mut match_ptr,
+            );
+            if match_ptr.is_null() {
+                return String::new();
+            }
+            let match_str = CStr::from_ptr(match_ptr).to_string_lossy().into_owned();
+            free_ptr(match_ptr);
+            match_str
+        }
+    }
+
+    /// Creates 3D coordinates
     pub fn set_3d_coords(&mut self, json_info: &str) {
         let json_info = CString::new(json_info).unwrap();
         unsafe {
@@ -550,8 +581,7 @@ impl Molecule {
     /// get descriptors as string
     pub fn get_descriptors(&self) -> String {
         let desc_cchar: *mut c_char = unsafe { get_descriptors(self.pkl_mol, *self.pkl_size) };
-        let desc_string: &str = unsafe { CStr::from_ptr(desc_cchar).to_str().unwrap() };
-        let res = desc_string.to_owned();
+        let res = unsafe { CStr::from_ptr(desc_cchar).to_string_lossy().into_owned() };
         unsafe { free_ptr(desc_cchar) };
         res
     }
@@ -561,8 +591,7 @@ impl Molecule {
         unsafe {
             let fp_cchar: *mut c_char =
                 get_morgan_fp(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
-            let fp_string: &str = CStr::from_ptr(fp_cchar).to_str().unwrap();
-            let res = fp_string.to_owned();
+            let res = CStr::from_ptr(fp_cchar).to_string_lossy().into_owned();
             free_ptr(fp_cchar);
             res
         }
@@ -600,8 +629,7 @@ impl Molecule {
         unsafe {
             let fp_cchar: *mut c_char =
                 get_rdkit_fp(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
-            let fp_string: &str = CStr::from_ptr(fp_cchar).to_str().unwrap();
-            let res = fp_string.to_owned();
+            let res = CStr::from_ptr(fp_cchar).to_string_lossy().into_owned();
             free_ptr(fp_cchar);
             res
         }
@@ -639,8 +667,7 @@ impl Molecule {
         unsafe {
             let fp_cchar: *mut c_char =
                 get_pattern_fp(self.pkl_mol, *self.pkl_size, json_info.as_ptr());
-            let fp_string: &str = CStr::from_ptr(fp_cchar).to_str().unwrap();
-            let res = fp_string.to_owned();
+            let res = CStr::from_ptr(fp_cchar).to_string_lossy().into_owned();
             free_ptr(fp_cchar);
             res
         }
@@ -673,114 +700,9 @@ impl Molecule {
         }
     }
 
-    // Property functions - commented out until available in RDKit CFFI library
-    // TODO: Uncomment when property functions are added to the library
-    //
-    // /// Check if molecule has a property with the given key
-    // pub fn has_prop(&self, key: &str) -> bool {
-    //     let key_cstr = CString::new(key).unwrap();
-    //     unsafe {
-    //         let result = has_prop(self.pkl_mol, *self.pkl_size, key_cstr.as_ptr());
-    //         result != 0
-    //     }
-    // }
-    //
-    // /// Get a list of property names
-    // ///
-    // /// # Arguments
-    // /// * `include_private` - Include private properties
-    // /// * `include_computed` - Include computed properties
-    // pub fn get_prop_list(&self, include_private: bool, include_computed: bool) -> Vec<String> {
-    //     unsafe {
-    //         let prop_list_ptr = get_prop_list(
-    //             self.pkl_mol,
-    //             *self.pkl_size,
-    //             if include_private { 1 } else { 0 },
-    //             if include_computed { 1 } else { 0 },
-    //         );
-    //
-    //         if prop_list_ptr.is_null() {
-    //             return Vec::new();
-    //         }
-    //
-    //         let mut props = Vec::new();
-    //         let mut i = 0;
-    //         while !(*prop_list_ptr.add(i)).is_null() {
-    //             let prop_cstr = CStr::from_ptr(*prop_list_ptr.add(i));
-    //             props.push(prop_cstr.to_string_lossy().into_owned());
-    //             libc::free(*prop_list_ptr.add(i) as *mut c_void);
-    //             i += 1;
-    //         }
-    //         libc::free(prop_list_ptr as *mut c_void);
-    //         props
-    //     }
-    // }
-    //
-    // /// Set a property on the molecule
-    // ///
-    // /// # Arguments
-    // /// * `key` - Property key
-    // /// * `val` - Property value
-    // /// * `computed` - Whether this is a computed property
-    // pub fn set_prop(&mut self, key: &str, val: &str, computed: bool) {
-    //     let key_cstr = CString::new(key).unwrap();
-    //     let val_cstr = CString::new(val).unwrap();
-    //     unsafe {
-    //         set_prop(
-    //             &mut self.pkl_mol as *mut _,
-    //             self.pkl_size,
-    //             key_cstr.as_ptr(),
-    //             val_cstr.as_ptr(),
-    //             if computed { 1 } else { 0 },
-    //         );
-    //     }
-    // }
-    //
-    // /// Get a property value by key
-    // ///
-    // /// Returns `None` if the property doesn't exist
-    // pub fn get_prop(&self, key: &str) -> Option<String> {
-    //     let key_cstr = CString::new(key).unwrap();
-    //     unsafe {
-    //         let prop_ptr = get_prop(self.pkl_mol, *self.pkl_size, key_cstr.as_ptr());
-    //         if prop_ptr.is_null() {
-    //             return None;
-    //         }
-    //         let prop_str = CStr::from_ptr(prop_ptr).to_string_lossy().into_owned();
-    //         free_ptr(prop_ptr);
-    //         Some(prop_str)
-    //     }
-    // }
-    //
-    // /// Clear a property from the molecule
-    // ///
-    // /// Returns `true` if the property existed and was cleared, `false` otherwise
-    // pub fn clear_prop(&mut self, key: &str) -> bool {
-    //     let key_cstr = CString::new(key).unwrap();
-    //     unsafe {
-    //         let result = clear_prop(
-    //             &mut self.pkl_mol as *mut _,
-    //             self.pkl_size,
-    //             key_cstr.as_ptr(),
-    //         );
-    //         result != 0
-    //     }
-    // }
-    //
-    // /// Keep only specified properties on the molecule
-    // ///
-    // /// # Arguments
-    // /// * `details_json` - JSON string with property filtering options
-    // pub fn keep_props(&mut self, details_json: &str) {
-    //     let details_cstr = CString::new(details_json).unwrap();
-    //     unsafe {
-    //         keep_props(
-    //             &mut self.pkl_mol as *mut _,
-    //             self.pkl_size,
-    //             details_cstr.as_ptr(),
-    //         );
-    //     }
-    // }
+    // Property functions (has_prop, get_prop_list, set_prop, get_prop, clear_prop, keep_props)
+    // are declared in bindings.rs but not yet exported by the pre-built RDKit libraries.
+    // Uncomment the import above and these methods when rebuilt binaries include them.
 
     ///Gets a query molecule from a SMARTS
     pub fn get_qmol(input: &str, json_info: &str) -> Option<Molecule> {
@@ -815,6 +737,12 @@ impl Molecule {
             }
         }
     }
+}
+
+/// Set whether to prefer the CoordGen library for 2D coordinate generation.
+/// Has no effect if RDKit was not built with CoordGen support.
+pub fn prefer_coordgen(val: bool) {
+    unsafe { bindings::prefer_coordgen(val as c_short) }
 }
 
 /// read a classical .smi file
@@ -886,9 +814,9 @@ impl Iterator for SDIterator {
             Some(molblock) => molblock.trim().to_string(),
             None => return None,
         };
-        if s_mod.len() == 0 {
-            self.next(); //last line
-        };
+        if s_mod.is_empty() {
+            return self.next(); // skip empty delimiter blocks
+        }
         let mol_opt = Molecule::new(&s_mod);
         Some(mol_opt)
     }

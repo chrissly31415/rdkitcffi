@@ -132,19 +132,18 @@ mod tests {
 
             //get molecule as json object
             let rdkit_json_cchar = get_json(pkl_mol, *pkl_size, add_json.as_ptr());
-            let mol_json_str = CStr::from_ptr(rdkit_json_cchar).to_str().unwrap();
+            let mol_json_str = CStr::from_ptr(rdkit_json_cchar).to_string_lossy().into_owned();
             println!("{}", mol_json_str);
+            free_ptr(rdkit_json_cchar);
+            free_ptr(pkl_mol);
+            libc::free(pkl_size as *mut libc::c_void);
             let rdkit_json_object: JsonBase =
-                serde_json::from_str(mol_json_str).expect("Wrong JSON format!");
+                serde_json::from_str(&mol_json_str).expect("Wrong JSON format!");
 
             for k in rdkit_json_object.molecules.iter() {
                 println!("Name: {:?}\n\n", k.name);
                 println!("Name: {:?}\n\n", k.extensions);
             }
-
-            libc::free(pkl_size as *mut libc::c_void);
-            free_ptr(pkl_mol);
-            free_ptr(rdkit_json_cchar);
         }
     }
 }

@@ -497,10 +497,10 @@ fn main() {
         .allowlist_function("get_prop")
         .allowlist_function("clear_prop")
         .allowlist_function("keep_props")
-        .allowlist_function("free")
         .allowlist_function("free_ptr")
         .allowlist_var("size_t")
         //TODO
+        .allowlist_function("has_coords")
         .allowlist_function("charge_parent")
         .allowlist_function("fragment_parent")
         .allowlist_function("prefer_coordgen")
