@@ -136,7 +136,9 @@ pub mod examples;
 pub mod bindings;
 
 use bindings::free_ptr;
-use bindings::{add_hs, has_coords, remove_all_hs, set_2d_coords, set_2d_coords_aligned, set_3d_coords};
+use bindings::{
+    add_hs, has_coords, remove_all_hs, set_2d_coords, set_2d_coords_aligned, set_3d_coords,
+};
 use bindings::{
     canonical_tautomer, charge_parent, cleanup, fragment_parent, neutralize, normalize, reionize,
 };

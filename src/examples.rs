@@ -132,7 +132,9 @@ mod tests {
 
             //get molecule as json object
             let rdkit_json_cchar = get_json(pkl_mol, *pkl_size, add_json.as_ptr());
-            let mol_json_str = CStr::from_ptr(rdkit_json_cchar).to_string_lossy().into_owned();
+            let mol_json_str = CStr::from_ptr(rdkit_json_cchar)
+                .to_string_lossy()
+                .into_owned();
             println!("{}", mol_json_str);
             free_ptr(rdkit_json_cchar);
             free_ptr(pkl_mol);
