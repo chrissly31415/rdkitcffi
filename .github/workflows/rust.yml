@@ -53,6 +53,9 @@ jobs:
         run: |
           cargo check
           cargo test --all --verbose
+        env:
+          DYLD_LIBRARY_PATH: ./rdkitcffi_macos/macos-64
+          LD_LIBRARY_PATH: ./rdkitcffi_linux/linux-64
 
       
 
