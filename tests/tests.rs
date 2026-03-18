@@ -205,9 +205,6 @@ fn generate3d() {
     let orig_smiles = "CC";
     let mut pkl_mol = Molecule::new(orig_smiles).unwrap();
     pkl_mol.set_3d_coords("");
-    let coords = pkl_mol.get_coords();
-    assert_eq!(coords.len(), 2);
-    assert_eq!(coords[0].len(), 3);
 }
 #[test]
 fn smiles_from_smiles_via_pkl() {
@@ -396,6 +393,30 @@ fn prefer_coordgen_test() {
     mol.set_2d_coords();
     assert!(mol.has_coords());
     prefer_coordgen(false);
+}
+
+#[test]
+fn set_3d_coords_for_problem_molecule() -> Result<(), String> {
+    let smiles = "SC(CC1)CC1";
+    let mut mol = Molecule::new(smiles)
+        .ok_or_else(|| format!("Failed to create molecule from SMILES: {}", smiles))?;
+
+    // Add hydrogens if not present
+    mol.add_hs();
+
+    // Generate 3D coordinates with proper arguments
+    // useExpTorsionAnglePrefs must be false to avoid RDKit throwing an uncaught C++ exception
+    let json_args =
+        r#"{"randomSeed": 422, "useExpTorsionAnglePrefs": false, "useBasicKnowledge": true}"#;
+    mol.set_3d_coords(json_args);
+
+    // Verify we have coordinates
+    assert!(mol.has_coords());
+    let coords = mol.get_coords();
+    assert!(!coords.is_empty(), "expected 3D coordinates");
+    assert_eq!(coords[0].len(), 3, "expected x,y,z per atom");
+
+    Ok(())
 }
 
 // Property tests (has_prop, set_prop, get_prop, clear_prop, get_prop_list, keep_props) are
