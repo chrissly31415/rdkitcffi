@@ -5,7 +5,7 @@
 
 # rdkitcffi
 
-This is a &#128679; rust wrapper  &#128679;  for some core functionality of the great [RDKit](https://www.rdkit.org/) cheminformatics library.
+This is a rust wrapper for some core functionality of the great [RDKit](https://www.rdkit.org/) cheminformatics library.
 
 It makes use of its CFFI interface, see also this [blog post](https://greglandrum.github.io/rdkit-blog/technical/2021/05/01/rdkit-cffi-part1.html).
  
