@@ -13,6 +13,7 @@ Only a limited functionality is being exposed via CFFI by RDKit and not all of t
  
 The rust wrapper is linked against a RDKit shared library, which is build and stored as an artifact via github actions and is automatically downloaded during build for linux, for windows and for macOS ARM64. 
 
+Currently the 2024 release of RDKit is still being used to provide better downward compatibility towards older operating systems.
 
  ## Examples
 
