@@ -11,7 +11,7 @@ It makes use of its CFFI interface, see also this [blog post](https://greglandru
  
 Only a limited functionality is being exposed via CFFI by RDKit and not all of this is available yet via this interface. Have a look at the examples below and the test functions.  
  
-The rust wrapper is linked against a pre-built RDKit shared library, which is stored as an artifact created via github actions and is automatically downloaded from this [location](https://github.com/chrissly31415/rdkitcffi/releases/download/rdkit-latest/rdkitcffi_linux.tar.gz) for linux and this [location](https://github.com/chrissly31415/rdkitcffi/releases/download/rdkit-latest/rdkitcffi_windows_vs.zip) for windows during build. 
+The rust wrapper is linked against a RDKit shared library, which is build and stored as an artifact via github actions and is automatically downloaded during build for linux, for windows and for macOS ARM64. 
 
 
  ## Examples
